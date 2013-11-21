@@ -1,19 +1,18 @@
-python-gnn
-
-# Gradient Nearest Neighbor Mapping for Python
+## Gradient Nearest Neighbor Mapping for Python
 
 *This is just a placeholder for a project that is hopefully coming soon.*
 *For now, it's mostly ideas and very little code*
 
-## Overview
+### Overview
 
 [Gradient Nearest Neighbor](http://www.forestencyclopedia.net/p/p3453) mapping is
 a technique for estimating detailed characteristics of the landscape based on 
 sparse point observations. The observations are imputed to the landscape based on
 their correspondence with several underlying explanatory variables for which we
-have full coverage raster data. 
+have full coverage raster data. [This poster](http://www.fsl.orst.edu/clams/download/posters/gnn_scaling.pdf)
+does a good job of visualizing the process.
 
-## The idea
+### The idea
 
 Build a python library to streamline the creation of GNN maps in order to
 
@@ -32,7 +31,7 @@ There are a number of existing tools that could be leveraged to support this wor
 * GDAL to write to new raster
 * R? to perform some sort of cross validation and statistical testing
 
-## Possible API
+### Possible API
 
 Example: Impute canopy cover and basal area of douglas fir and red alder across 
 the landscape using existing forest plots and explanatory terrain variables. 
