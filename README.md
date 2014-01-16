@@ -1,4 +1,4 @@
-## Gradient Nearest Neighbor Mapping for Python
+## Gradient Nearest Neighbor Imputation for Python
 
 *This is just a placeholder for a project that is hopefully coming soon.*
 *For now, it's mostly ideas and very little code*
