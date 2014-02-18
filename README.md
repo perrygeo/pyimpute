@@ -1,9 +1,11 @@
-## Gradient Nearest Neighbor Imputation for Python
+## Spatial Imputation for Python
 
 *This is just a placeholder for a project that is hopefully coming soon.*
 *For now, it's mostly ideas and very little code*
 
 ### Overview
+
+TODO use imputation as a more general term instead of GNN
 
 [Gradient Nearest Neighbor](http://www.forestencyclopedia.net/p/p3453) mapping is
 a technique for estimating detailed characteristics of the landscape based on 
@@ -22,28 +24,70 @@ Build a python library to streamline the creation of GNN maps in order to
 
 There are a number of existing tools that could be leveraged to support this workflow:
 
+#### Loading spatial data
 * User inputs explanatory rasters, observation vector dataset, response columns
 * Use python-rasters-stats to grab the data from explanatory rasters
-* Use pandas to construct data frames: explanatory variables vs. obs and response variable vs. observations
-* Use RPy2 to bridge the gap to the vegan R library to run canonical correspondence analysis (*stepwise? test statistical significance? pick number of axes?*)
-* Use GDAL to apply cca coefficients to each pixel 
-* SciPy K Nearest Neighbor routine to select the nearest observation(s) in gradient space (after adding X & Y)
-* GDAL to write to new raster
-* R? to perform some sort of cross validation and statistical testing
+* Use pandas/numpy to construct arrays: explanatory variables vs. obs and response variable vs. observations
+
+#### Calibrate a classification model
+
+* All done using scikit-learn classifiers
+* optional: scale and optionally reduce dimensionality of data
+* optional: calibrate using grid search cv to find optimal parameters
+* optional: create your own ensemble [2]
+* Evaluate:
+  crossvalidation (average score over k-folds)
+  train_test split
+  metrics  [3]
+  confusion matrix
+  compare to dummy estimators
+  identify most informative features [1]
+  
+#### Fit model and generate spatial prediction
+* Fit and predict using scikit learn
+* GDAL to write predicted classes array to new raster
+* write raster of prediction probability for each pixel
+* write rasters (one for each class) with probability of that class over space
+
+
+
+### Some resources
+
+[1] http://stackoverflow.com/questions/11116697/how-to-get-most-informative-features-for-scikit-learn-classifiers?rq=1
+[2] http://stackoverflow.com/questions/21506128/best-way-to-combine-probabilistic-classifiers-in-scikit-learn/21544196#21544196
+[3] http://scikit-learn.org/stable/modules/model_evaluation.html#prediction-error-metrics
+[4] http://scikit-learn.org/stable/auto_examples/plot_classification_probability.html
 
 ### Possible API
 
-Example: Impute canopy cover and basal area of douglas fir and red alder across 
-the landscape using existing forest plots and explanatory terrain variables. 
+Not really an API as much as it is a series of utility functions that play nice with scikit-learn
 
-    from gnn import gnn_cca, apply_nn, cross_validate
-    
-    cca_results = gnn_cca(
-        ['dem','tpi', 'slope', 'aspect'], 
-        'forest_plots.shp', 
-        ['DougFirBA', 'RedAlderBA', 'CanopyCover'])
+```python
+"""
+training grids = IVs to fit
+training data = raster or vector containing classes
+target grids = IVs to use for prediction
+output grids = prediction rasters
+"""
+from impute import load_data, load_grids, cvreport, impute, plot
 
-    nn_results = apply_nn(cca_results, 'output.tif', 'log.json')
-    cv_results = cross_validate(cca_results)
+X, y, class_names = load_training(['a.tif','b.tif'], 'fia.shp', field="cls")
+# point data only?
+plot(X, y)  # show map of rasters
+# scale and/or reduce dimensionality?
 
-Or maybe more object oriented like scikit-learn? I dunno, you get the idea though.
+rf = RandomForestClassifier()
+# cross validate and grid search, maybe cvreport util function?
+rf.fit(X, y)
+
+target_X, spatial_info = load_targets(['a2060.tif','b2060.tif'])
+# predicted_y = rf.predict(target_X), reshape,
+rf = impute(target_X, spatial_info, rf,
+    outdir="test2",  # default to standard naming convention for outputs
+    class_names=class_names,
+    prediction_raster = True,
+    score_raster = True,
+    class_proba_rasters = True,
+    validation_report=True,
+    plot_maps=True)
+```
