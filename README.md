@@ -24,7 +24,7 @@ Build a python library to streamline the creation of GNN maps in order to
 
 There are a number of existing tools that could be leveraged to support this workflow:
 
-#### Loading spatial data
+### Loading spatial data
 * User inputs explanatory rasters, observation vector dataset, response columns
 * Use python-rasters-stats to grab the data from explanatory rasters
 * Use pandas/numpy to construct arrays: explanatory variables vs. obs and response variable vs. observations
@@ -36,12 +36,12 @@ There are a number of existing tools that could be leveraged to support this wor
 * optional: calibrate using grid search cv to find optimal parameters
 * optional: create your own ensemble [2]
 * Evaluate:
-  crossvalidation (average score over k-folds)
-  train_test split
-  metrics  [3]
-  confusion matrix
-  compare to dummy estimators
-  identify most informative features [1]
+    * crossvalidation (average score over k-folds)
+    * train_test split
+    * metrics  [3]
+    * confusion matrix
+    * compare to dummy estimators
+    * identify most informative features [1]
   
 #### Fit model and generate spatial prediction
 * Fit and predict using scikit learn
@@ -54,8 +54,11 @@ There are a number of existing tools that could be leveraged to support this wor
 ### Some resources
 
 [1] http://stackoverflow.com/questions/11116697/how-to-get-most-informative-features-for-scikit-learn-classifiers?rq=1
+
 [2] http://stackoverflow.com/questions/21506128/best-way-to-combine-probabilistic-classifiers-in-scikit-learn/21544196#21544196
+
 [3] http://scikit-learn.org/stable/modules/model_evaluation.html#prediction-error-metrics
+
 [4] http://scikit-learn.org/stable/auto_examples/plot_classification_probability.html
 
 ### Possible API
