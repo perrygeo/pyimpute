@@ -72,25 +72,20 @@ training data = raster or vector containing classes
 target grids = IVs to use for prediction
 output grids = prediction rasters
 """
-from impute import load_data, load_grids, cvreport, impute, plot
+from impute import load_training, load_targets, cvreport, impute, plot
 
-X, y, class_names = load_training(['a.tif','b.tif'], 'fia.shp', field="cls")
-# point data only?
-plot(X, y)  # show map of rasters
-# scale and/or reduce dimensionality?
+X, y, class_names, feature_names = load_training('aez_pts.shp', class="aez", fields=['precip'],
+                                                 rasters={'dem', 'elev10m.tif'})
 
 rf = RandomForestClassifier()
-# cross validate and grid search, maybe cvreport util function?
 rf.fit(X, y)
 
-target_X, spatial_info = load_targets(['a2060.tif','b2060.tif'])
-# predicted_y = rf.predict(target_X), reshape,
-rf = impute(target_X, spatial_info, rf,
-    outdir="test2",  # default to standard naming convention for outputs
-    class_names=class_names,
-    prediction_raster = True,
-    score_raster = True,
-    class_proba_rasters = True,
-    validation_report=True,
-    plot_maps=True)
-```
+target_X, spatial_info = load_targets({
+    'precip': 'precip_2060.tif',
+    'dem': 'dem.tif',
+)
+
+
+# default to standard naming convention for outputs
+rf = impute(target_X, spatial_info, rf, outdir="test2", class_names, feature_names)
+
