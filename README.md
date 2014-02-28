@@ -123,8 +123,10 @@ Imputing responses; check ./out1/*.tif
 ```
 
 And the resulting predicted zones might look like...
+
 ![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/example_responses.png)
 
 While the certainty estimates might look like...
+
 ![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/example_certainty.png)
 
