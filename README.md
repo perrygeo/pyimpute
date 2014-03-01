@@ -28,12 +28,14 @@ There are a number of existing tools that could be leveraged to support this wor
 ### The process
 
 1. Loading spatial data
+
         * Easiest method: import table containing training observations with both explanatory and response variables.
 	* User inputs explanatory rasters, observation vector dataset, response columns
 	* Use python-rasters-stats to grab the data from explanatory rasters
 	* Use pandas/numpy to construct arrays: explanatory variables vs. obs and response variable vs. observations
 
 2. Fit a classification or regression model
+
 	* Leverage scikit-learn classifiers or regressors
 	* Fit to training data
 	* optional: scale and optionally reduce dimensionality of data
@@ -48,6 +50,7 @@ There are a number of existing tools that could be leveraged to support this wor
 	    * identify most informative features [1]
   
 3. Generate spatial prediction from target data
+
         * scikit classifiers to make predictions and generate certainty estimates
 	* GDAL to write predicted classes array to new raster
 	* write raster of prediction probability for each pixel
