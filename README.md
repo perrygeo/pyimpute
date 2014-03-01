@@ -1,53 +1,57 @@
 ## Spatial Imputation for Python
 
-*This is just a placeholder for a project that is hopefully coming soon.*
-*For now, it's mostly ideas and very little code*
 
 ### Overview
 
-TODO use imputation as a more general term instead of GNN
-
-[Gradient Nearest Neighbor](http://www.forestencyclopedia.net/p/p3453) mapping is
+**Imputation**, in the context of spatial data, is
 a technique for estimating detailed characteristics of the landscape based on 
-sparse point observations. The observations are imputed to the landscape based on
-their correspondence with several underlying explanatory variables for which we
-have full coverage raster data. [This poster](http://www.fsl.orst.edu/clams/download/posters/gnn_scaling.pdf)
-does a good job of visualizing the process.
+sparse observations. The observations, known as the **training data**, contain:
 
-### The idea
+* **explanatory** variables: relatively inexpensive to measure or predict; explain the spatial patterns of response variables 
+* **response** variables: relatively expensive or impossible to obtain
 
-Build a python library to streamline the creation of GNN maps in order to
+The **target data** contains *only* explanatory variables represented by full coverage raster data. There are no response variables available for the target data.
 
-* frequently update with new information (e.g. new Landsat imagery as it becomes available)
+The ultimate goal is to predict spatially-explicit responses based on the target data. It is very similar to the concept of "supervised classification" in remote sensing but can also be used to predict continuious variables (i.e. regression)
+
+
+### The goal of this library
+
+Build a python library to streamline the process of imputing spatial data. This will allow us to 
+
+* frequently update predictions with new information (e.g. new Landsat imagery as it becomes available)
 * explore new variables more easily
-* bring the technique to other disciplines and geographies (has been applied primarily to pacific northwest forestry)
+* bring the technique to other disciplines and geographies (has been applied primarily to forestry)
 
 There are a number of existing tools that could be leveraged to support this workflow:
 
-### Loading spatial data
-* User inputs explanatory rasters, observation vector dataset, response columns
-* Use python-rasters-stats to grab the data from explanatory rasters
-* Use pandas/numpy to construct arrays: explanatory variables vs. obs and response variable vs. observations
+### The process
 
-#### Calibrate a classification model
+1. Loading spatial data
+        * Easiest method: import table containing training observations with both explanatory and response variables.
+	* User inputs explanatory rasters, observation vector dataset, response columns
+	* Use python-rasters-stats to grab the data from explanatory rasters
+	* Use pandas/numpy to construct arrays: explanatory variables vs. obs and response variable vs. observations
 
-* All done using scikit-learn classifiers
-* optional: scale and optionally reduce dimensionality of data
-* optional: calibrate using grid search cv to find optimal parameters
-* optional: create your own ensemble [2]
-* Evaluate:
-    * crossvalidation (average score over k-folds)
-    * train_test split
-    * metrics  [3]
-    * confusion matrix
-    * compare to dummy estimators
-    * identify most informative features [1]
+2. Fit a classification or regression model
+	* Leverage scikit-learn classifiers or regressors
+	* Fit to training data
+	* optional: scale and optionally reduce dimensionality of data
+	* optional: calibrate using grid search cv to find optimal parameters
+	* optional: create your own ensemble [2]
+	* Evaluate:
+	    * crossvalidation (average score over k-folds)
+	    * train_test split
+	    * metrics  [3]
+	    * confusion matrix
+	    * compare to dummy estimators
+	    * identify most informative features [1]
   
-#### Fit model and generate spatial prediction
-* Fit and predict using scikit learn
-* GDAL to write predicted classes array to new raster
-* write raster of prediction probability for each pixel
-* write rasters (one for each class) with probability of that class over space
+3. Generate spatial prediction from target data
+        * scikit classifiers to make predictions and generate certainty estimates
+	* GDAL to write predicted classes array to new raster
+	* write raster of prediction probability for each pixel
+	* write rasters (one for each class) with probability of that class over space
 
 
 
