@@ -67,70 +67,35 @@ There are a number of existing tools that could be leveraged to support this wor
 
 ### Example
 
-Here we take a table of known data points (*training data*) and use it to train a classifier
-and predict a raster surface of the response variable.
+Please check out [the example script](https://github.com/perrygeo/python-impute/blob/master/example.py)
 
-```python
-from impute import load_training, load_targets, impute
-from sklearn.ensemble import RandomForestClassifier
-import warnings; warnings.filterwarnings('ignore')
+This example walks through the main steps of loading training data, setting up and evaluating a classifier, and using it to predict a raster of the response variable.
 
-#------------------ Load the known data points or "training" data
-# x ~ the explanatory variables which are full coverage/inexpensive
-# y ~ the response variables which are sparse/expensive/impossible to collect
-print "Loading training data"
-train_xs, train_y, explanatory_fields = load_training(
-    # A csv containing point observations with known responses
-    'data/zone_sample.csv',
-    # the column name holding the response; should be integer
-    "ISO_AG11_15",  
-    # the column names holding explanatory variables
-    ['GT_DEM', 'PMEAN_ALL', 'TMAX8', 'TMEAN_ALL', 'DTMEAN8_12', 'P_N', 'INT_CNL_EUC'])
-
-#------------------ Set up classifier
-print "Training classifier"
-rf = RandomForestClassifier(n_estimators=10, n_jobs=3)
-rf.fit(train_xs, train_y)  # fit the classifier to the training data
-
-#------------------ Assess predictive accuracy
-from sklearn import cross_validation
-scores = cross_validation.cross_val_score(rf, train_xs, train_y, cv=2)
-print("\tAccuracy: %0.2f (+/- %0.2f)" % (scores.mean() * 100, scores.std() * 200))
-
-#------------------ Load the target/explanatory raster data 
-#------------------ will be used to predict resposes
-print "Loading explanatory raster data"
-target_xs, gt, shape = load_targets({  
-    # one for each explanatory field
-    'GT_DEM': 'data/gt_dem.img',
-    'PMEAN_ALL': 'data/pmean_all.img',
-    'TMAX8': 'data/tmax8.img',
-    'TMEAN_ALL': 'data/tmean_all.img',
-    'DTMEAN8_12': 'data/dtmean8_12.img',
-    'P_N': 'data/p_n.img',
-    'INT_CNL_EUC': 'data/int_cnl_euc.img'}, explanatory_fields)
-
-#------------------ Impute response rasters
-#------------------ default to standard naming convention for outputs
-#------------------ data gets dumped to an output directory
-print "Imputing responses; check ./out1/*.tif"
-impute(target_xs, rf, gt, shape, outdir="out1")
-```
-
-The example output would be something like...
-```
-Loading training data
-Training classifier
-	Accuracy: 84.74 (+/- 2.48)
-Loading explanatory raster data
-Imputing responses; check ./out1/*.tif
-```
-
-And the resulting predicted zones might look like...
+The resulting prediction raster
 
 ![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/example_responses.png)
 
-While the certainty estimates might look like...
+The certainty estimates
 
 ![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/example_certainty.png)
+
+
+#### Note about performance and memory limitations
+Depending on the classifier you use, memory and/or time might become limited.
+
+The `impute` method takes an optional argument, (`linechunk`) which calibrates the performance. 
+Specifically, it determines how many lines/rows of the raster file are processed at once. 
+In this example, I use the RandomForest classifier. Other classifiers may exhibit different behavior
+but, in general, there is a tradeoff between speed and memory;
+
+as you increase `linechunk` memory increases *linearly*
+
+![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/memory.png)
+
+while performance increases *exponentially*. 
+
+![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/time.png)
+
+**tl;dr;** You want to set `linechunk` as high as possible without exceeding your memory capacity.
+
 
