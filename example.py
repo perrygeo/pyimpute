@@ -49,7 +49,4 @@ target_xs, gt, shape = load_targets({
 # Impute response rasters
 # default to standard naming convention for outputs
 # data gets dumped to an output directory
-print "Imputing responses without linechunk; check ./out1/*.tif"
-from time import time; start = time()
-impute(target_xs, rf, gt, shape, outdir="out1", linechunk=1)
-print time() - start
+impute(target_xs, rf, gt, shape, outdir="out1")

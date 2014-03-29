@@ -54,7 +54,7 @@ def load_targets(targets, explanatory_fields):
     return expl, gt, shape
 
 
-def impute(target_xs, rf, gt, shape, outdir="output", linechunk=25):
+def impute(target_xs, rf, gt, shape, outdir="output", linechunk=1000):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
@@ -79,7 +79,7 @@ def impute(target_xs, rf, gt, shape, outdir="output", linechunk=25):
         # Do it one line at a time to avoid memory contraints on large rasters
         chunks = int(math.ceil(shape[0] / float(linechunk)))
         for chunk in range(chunks):
-            print "Writing chunk %d of %d" % (chunk+1, chunks)
+            #print "Writing chunk %d of %d" % (chunk+1, chunks)
             row = chunk * linechunk
             if row + linechunk > shape[0]:
                 linechunk = shape[0] - row
