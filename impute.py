@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import math
 from osgeo import gdal
 
 
@@ -53,31 +54,60 @@ def load_targets(targets, explanatory_fields):
     return expl, gt, shape
 
 
-def impute(target_xs, rf, gt, shape, outdir="output"):
+def impute(target_xs, rf, gt, shape, outdir="output", linechunk=25):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    predicted_responses = rf.predict(target_xs)
-    responses2D = predicted_responses.reshape(shape)
-
-    proba = rf.predict_proba(target_xs)
-    certainty = proba.max(axis=1)
-    cert2D = certainty.reshape(shape)
-
     driver = gdal.GetDriverByName('GTiff')
 
-    # Create a new raster for responses
-    outds = driver.Create(os.path.join(outdir, "responses.tif"), shape[1], shape[0], 1, gdal.GDT_UInt16)
-    outds.SetGeoTransform(gt)
-    # TODO outds.SetProjection(rzones.GetProjection())
-    outband = outds.GetRasterBand(1)
-    outband.WriteArray(responses2D)
-    outds = None
+    ## Create a new raster for responses
+    outds_response = driver.Create(os.path.join(outdir, "responses.tif"),
+                                   shape[1], shape[0], 1, gdal.GDT_UInt16)
+    outds_response.SetGeoTransform(gt)
+    # outds.SetProjection(rzones.GetProjection())
+    outband_response = outds_response.GetRasterBand(1)
 
-    # Create a new raster for certainty
-    outds = driver.Create(os.path.join(outdir, "certainty.tif"), shape[1], shape[0], 1, gdal.GDT_Float32)
-    outds.SetGeoTransform(gt)
-    # TODO outds.SetProjection(rzones.GetProjection())
-    outband = outds.GetRasterBand(1)
-    outband.WriteArray(cert2D)
-    outds = None
+    ## Create a new raster for certainty
+    outds_certainty = driver.Create(os.path.join(outdir, "certainty.tif"), 
+                                    shape[1], shape[0], 1, gdal.GDT_Float32)
+    outds_certainty.SetGeoTransform(gt)
+    # outds.SetProjection(rzones.GetProjection())
+    outband_certainty = outds_certainty.GetRasterBand(1)
+
+
+    # Do it one line at a time to avoid memory contraints on large rasters
+    if linechunk:
+        chunks = int(math.ceil(shape[0] / float(linechunk)))
+        for chunk in range(chunks):
+            print "Writing chunk %d of %d" % (chunk+1, chunks)
+            row = chunk * linechunk
+            if row + linechunk > shape[0]:
+                linechunk = shape[0] - row
+
+            start = shape[1] * row
+            end = start + shape[1] * linechunk 
+            line = target_xs[start:end,:]
+
+            responses = rf.predict(line)
+            responses2D = responses.reshape((linechunk, shape[1]))
+            outband_response.WriteArray(responses2D, xoff=0, yoff=row)
+
+            proba = rf.predict_proba(line)
+            certainty = proba.max(axis=1)
+            certainty2D = certainty.reshape((linechunk, shape[1]))
+            outband_certainty.WriteArray(certainty2D, xoff=0, yoff=row)
+
+            outds_certainty.FlushCache()
+            outds_response.FlushCache()
+    else:
+        predicted_responses = rf.predict(target_xs)
+        responses2D = predicted_responses.reshape(shape)
+        outband_response.WriteArray(responses2D)
+
+        proba = rf.predict_proba(target_xs)
+        certainty = proba.max(axis=1)
+        cert2D = certainty.reshape(shape)
+        outband_certainty.WriteArray(cert2D)
+
+    outds_certainty = None
+    outds_response = None
