@@ -18,7 +18,7 @@ def load_training(infile, response_field, explanatory_fields, rasters=None):
     train_xs = np.float32(np.asarray(data[explanatory_fields]))
 
     # todo scale
-    return train_xs, train_y, explanatory_fields
+    return train_xs, train_y
 
 
 def load_targets(targets, explanatory_fields):
@@ -75,8 +75,8 @@ def impute(target_xs, rf, gt, shape, outdir="output", linechunk=25):
     outband_certainty = outds_certainty.GetRasterBand(1)
 
 
-    # Do it one line at a time to avoid memory contraints on large rasters
     if linechunk:
+        # Do it one line at a time to avoid memory contraints on large rasters
         chunks = int(math.ceil(shape[0] / float(linechunk)))
         for chunk in range(chunks):
             print "Writing chunk %d of %d" % (chunk+1, chunks)
@@ -100,6 +100,7 @@ def impute(target_xs, rf, gt, shape, outdir="output", linechunk=25):
             outds_certainty.FlushCache()
             outds_response.FlushCache()
     else:
+        # Do the entire raster at once; faster but more memory required
         predicted_responses = rf.predict(target_xs)
         responses2D = predicted_responses.reshape(shape)
         outband_response.WriteArray(responses2D)
