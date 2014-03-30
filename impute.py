@@ -54,7 +54,7 @@ def load_targets(targets, explanatory_fields):
     return expl, gt, shape
 
 
-def impute(target_xs, rf, gt, shape, outdir="output", linechunk=1000):
+def impute(target_xs, rf, gt, shape, outdir="output", linechunk=1000, class_prob=True, certainty=True):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
@@ -64,51 +64,68 @@ def impute(target_xs, rf, gt, shape, outdir="output", linechunk=1000):
     outds_response = driver.Create(os.path.join(outdir, "responses.tif"),
                                    shape[1], shape[0], 1, gdal.GDT_UInt16)
     outds_response.SetGeoTransform(gt)
-    # outds.SetProjection(rzones.GetProjection())
     outband_response = outds_response.GetRasterBand(1)
 
     ## Create a new raster for certainty
-    outds_certainty = driver.Create(os.path.join(outdir, "certainty.tif"), 
-                                    shape[1], shape[0], 1, gdal.GDT_Float32)
-    outds_certainty.SetGeoTransform(gt)
-    # outds.SetProjection(rzones.GetProjection())
-    outband_certainty = outds_certainty.GetRasterBand(1)
+    ## We interpret certainty to be the max probability across classes
+    if certainty:
+        outds_certainty = driver.Create(os.path.join(outdir, "certainty.tif"), 
+                                        shape[1], shape[0], 1, gdal.GDT_Float32)
+        outds_certainty.SetGeoTransform(gt)
+        outband_certainty = outds_certainty.GetRasterBand(1)
 
+    ## Create a new rasters for probability of each class
+    if class_prob:
+        classes = list(rf.classes_)
+        # classes.index(70)  # find the idx of class 70
+        outdss_classprob = []
+        outbands_classprob = []
+        for i, c in enumerate(classes):
+            ods = driver.Create(os.path.join(outdir, "probability_%s.tif" % c), 
+                                shape[1], shape[0], 1, gdal.GDT_Float32)
+            ods.SetGeoTransform(gt)
+            outdss_classprob.append(ods)
+            outbands_classprob.append(ods.GetRasterBand(1))
 
-    if linechunk:
-        # Do it one line at a time to avoid memory contraints on large rasters
-        chunks = int(math.ceil(shape[0] / float(linechunk)))
-        for chunk in range(chunks):
-            #print "Writing chunk %d of %d" % (chunk+1, chunks)
-            row = chunk * linechunk
-            if row + linechunk > shape[0]:
-                linechunk = shape[0] - row
+        class_gdal = zip(outdss_classprob, outbands_classprob)
 
-            start = shape[1] * row
-            end = start + shape[1] * linechunk 
-            line = target_xs[start:end,:]
+    if not linechunk:
+        linechunk = shape[1]
 
-            responses = rf.predict(line)
-            responses2D = responses.reshape((linechunk, shape[1]))
-            outband_response.WriteArray(responses2D, xoff=0, yoff=row)
+    chunks = int(math.ceil(shape[0] / float(linechunk)))
+    for chunk in range(chunks):
+        #print "Writing chunk %d of %d" % (chunk+1, chunks)
+        row = chunk * linechunk
+        if row + linechunk > shape[0]:
+            linechunk = shape[0] - row
 
+        start = shape[1] * row
+        end = start + shape[1] * linechunk 
+        line = target_xs[start:end,:]
+
+        responses = rf.predict(line)
+        responses2D = responses.reshape((linechunk, shape[1]))
+        outband_response.WriteArray(responses2D, xoff=0, yoff=row)
+
+        if certainty or class_prob:
             proba = rf.predict_proba(line)
+
+        if certainty:
             certainty = proba.max(axis=1)
             certainty2D = certainty.reshape((linechunk, shape[1]))
             outband_certainty.WriteArray(certainty2D, xoff=0, yoff=row)
+          
+        # write out probabilities for each class as a separate raster
+        if class_prob:
+            for cls_index, ds_band in enumerate(class_gdal):
+                proba_class = proba[:, cls_index]
+                classcert2D = proba_class.reshape((linechunk, shape[1]))
+                ds, band = ds_band
+                band.WriteArray(classcert2D, xoff=0, yoff=row)
+                ds.FlushCache()
 
-            outds_certainty.FlushCache()
-            outds_response.FlushCache()
-    else:
-        # Do the entire raster at once; faster but more memory required
-        predicted_responses = rf.predict(target_xs)
-        responses2D = predicted_responses.reshape(shape)
-        outband_response.WriteArray(responses2D)
-
-        proba = rf.predict_proba(target_xs)
-        certainty = proba.max(axis=1)
-        cert2D = certainty.reshape(shape)
-        outband_certainty.WriteArray(cert2D)
+        outds_certainty.FlushCache()
+        outds_response.FlushCache()
 
     outds_certainty = None
     outds_response = None

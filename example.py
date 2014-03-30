@@ -21,7 +21,7 @@ train_xs, train_y = load_training(
 ###############################################################################
 # Set up classifier
 print "Training classifier"
-rf = RandomForestClassifier(n_estimators=10, n_jobs=-1)
+rf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
 rf.fit(train_xs, train_y)  # fit the classifier to the training data
 
 ###############################################################################
@@ -49,4 +49,5 @@ target_xs, gt, shape = load_targets({
 # Impute response rasters
 # default to standard naming convention for outputs
 # data gets dumped to an output directory
-impute(target_xs, rf, gt, shape, outdir="out1")
+print "Imputing response rasters"
+impute(target_xs, rf, gt, shape, outdir="out1", linechunk=None)
