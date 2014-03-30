@@ -20,7 +20,7 @@ train_xs, train_y = load_training(
 ###############################################################################
 # Set up classifier
 print "Training classifier"
-rf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
+rf = RandomForestClassifier(n_estimators=10, n_jobs=-1)
 rf.fit(train_xs, train_y)  # fit the classifier to the training data
 
 ###############################################################################
@@ -34,7 +34,7 @@ print("\tAccuracy: %0.2f (+/- %0.2f)" % (scores.mean() * 100,
 # Load the target/explanatory raster data 
 # will be used to predict resposes
 print "Loading explanatory raster data"
-target_xs, gt, shape = load_targets({  
+target_xs, raster_info = load_targets({  
     # one for each explanatory field
     'GT_DEM': 'data/gt_dem.img',
     'PMEAN_ALL': 'data/pmean_all.img',
@@ -49,4 +49,5 @@ target_xs, gt, shape = load_targets({
 # default to standard naming convention for outputs
 # data gets dumped to an output directory
 print "Imputing response rasters"
-impute(target_xs, rf, gt, shape, outdir="out1", linechunk=None)
+impute(target_xs, rf, raster_info, outdir="out1", 
+       linechunk=None, class_prob=False, certainty=False)

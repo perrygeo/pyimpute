@@ -50,10 +50,13 @@ def raster_stratified_sample(strata_data,
     selected = []
     for k, v in sample.items():
         # check for stratum with < target sample size
+        # print k, len(v)
         if len(v) < target_sample_size:
-            warnings.warn("Stratum %s has only %d samples" % (k, len(v)))
-
-        selected.extend(v)
+            # if we have too few samples, drop them
+            #warnings.warn("Stratum %s has only %d samples, dropped" % (k, len(v)))
+            pass
+        else:
+            selected.extend(v)
 
     return np.array(selected)
 

@@ -13,31 +13,32 @@ def load_training(infile, response_field, explanatory_fields):
     # todo scale
     return train_xs, train_y
 
-def load_training_from_rasters(selected, response_raster, explanatory_rasters):
+def load_training_from_rasters(selected, response_raster, 
+                               explanatory_rasters, explanatory_fields):
     ds = gdal.Open(response_raster)
     if ds is None:
         raise Exception("%s not found" % strata_data)
     response_data = ds.ReadAsArray().flatten()
     train_y = response_data[selected]
-    #selected_data['response'] = response_data[selected]
-    #selected_data['raster_index'] = selected
 
-    selected_data = {}
-    for var, rast in explanatory_rasters.items():
+    selected_data = []
+    for var in explanatory_fields:
+        rast = explanatory_rasters[var]
         ds = gdal.Open(rast)
         if ds is None:
             raise Exception("%s not found" % strata_data)
         explanatory_data = ds.ReadAsArray().flatten()
         assert explanatory_data.size == response_data.size
-        selected_data[var] = explanatory_data[selected]
+        selected_data.append(explanatory_data[selected])
 
-    train_xs = np.asarray(pd.DataFrame(selected_data))
+    train_xs = np.asarray(selected_data).T
     return train_xs, train_y
 
 def load_targets(targets, explanatory_fields):
     explanatory_raster_arrays = []
     gt = None
     shape = None
+    srs = None
     for fld in explanatory_fields:
         raster = targets[fld]
         r = gdal.Open(raster)
@@ -57,6 +58,12 @@ def load_targets(targets, explanatory_fields):
         else:
             assert shape == ar.shape
             
+        # Save or check the geotransform
+        if not srs:
+            srs = r.GetProjection()
+        else:
+            assert srs == r.GetProjection()
+
         # Flatten in one dimension
         arf = ar.flatten()
         explanatory_raster_arrays.append(arf)
@@ -64,21 +71,30 @@ def load_targets(targets, explanatory_fields):
         # TODO scale
 
     expl = np.array(explanatory_raster_arrays).T
-    return expl, gt, shape
+    raster_info = {
+        'gt': gt,
+        'shape': shape,
+        'srs': srs
+    }
+    return expl, raster_info
 
 
-def impute(target_xs, rf, gt, shape, outdir="output",
+def impute(target_xs, rf, raster_info, outdir="output",
            linechunk=1000, class_prob=True, certainty=True):
 
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
     driver = gdal.GetDriverByName('GTiff')
+    gt = raster_info['gt']
+    shape = raster_info['shape']
+    srs = raster_info['srs']
 
     ## Create a new raster for responses
     outds_response = driver.Create(os.path.join(outdir, "responses.tif"),
                                    shape[1], shape[0], 1, gdal.GDT_UInt16)
     outds_response.SetGeoTransform(gt)
+    outds_response.SetProjection(srs)
     outband_response = outds_response.GetRasterBand(1)
 
     ## Create a new raster for certainty
@@ -87,6 +103,7 @@ def impute(target_xs, rf, gt, shape, outdir="output",
         outds_certainty = driver.Create(os.path.join(outdir, "certainty.tif"), 
                                         shape[1], shape[0], 1, gdal.GDT_Float32)
         outds_certainty.SetGeoTransform(gt)
+        outds_certainty.SetProjection(srs)
         outband_certainty = outds_certainty.GetRasterBand(1)
 
     ## Create a new rasters for probability of each class
@@ -99,6 +116,7 @@ def impute(target_xs, rf, gt, shape, outdir="output",
             ods = driver.Create(os.path.join(outdir, "probability_%s.tif" % c), 
                                 shape[1], shape[0], 1, gdal.GDT_Float32)
             ods.SetGeoTransform(gt)
+            ods.SetProjection(srs)
             outdss_classprob.append(ods)
             outbands_classprob.append(ods.GetRasterBand(1))
 
@@ -126,8 +144,8 @@ def impute(target_xs, rf, gt, shape, outdir="output",
             proba = rf.predict_proba(line)
 
         if certainty:
-            certainty = proba.max(axis=1)
-            certainty2D = certainty.reshape((linechunk, shape[1]))
+            certaintymax = proba.max(axis=1)
+            certainty2D = certaintymax.reshape((linechunk, shape[1]))
             outband_certainty.WriteArray(certainty2D, xoff=0, yoff=row)
           
         # write out probabilities for each class as a separate raster
@@ -139,7 +157,8 @@ def impute(target_xs, rf, gt, shape, outdir="output",
                 band.WriteArray(classcert2D, xoff=0, yoff=row)
                 ds.FlushCache()
 
-        outds_certainty.FlushCache()
+        if certainty:
+            outds_certainty.FlushCache()
         outds_response.FlushCache()
 
     outds_certainty = None

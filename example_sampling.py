@@ -1,6 +1,5 @@
 from impute import load_training, load_training_from_rasters, load_targets, impute
 from sklearn.ensemble import RandomForestClassifier
-import warnings; warnings.filterwarnings('ignore')
 
 ###############################################################################
 # Load the known data points or "training" data
@@ -21,16 +20,20 @@ explanatory_fields = explanatory_rasters.keys()
 response_raster = 'data/responses.tif'
 
 from sampling import raster_stratified_sample
-selected = raster_stratified_sample(response_raster)
+selected = raster_stratified_sample(response_raster, 
+                                    target_sample_size=20,
+                                    min_sample_proportion=0.02)
 # TODO: May want to cache this so you can work with a consistent training set
+print len(selected), "samples"
 
 train_xs, train_y = load_training_from_rasters(
-    selected, response_raster, explanatory_rasters)
+    selected, response_raster, explanatory_rasters, explanatory_fields)
+
 
 ###############################################################################
 # Set up classifier
 print "Training classifier"
-rf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
+rf = RandomForestClassifier(n_estimators=200, n_jobs=-1)
 rf.fit(train_xs, train_y)  # fit the classifier to the training data
 
 ###############################################################################
@@ -44,11 +47,12 @@ print("\tAccuracy: %0.2f (+/- %0.2f)" % (scores.mean() * 100,
 # Load the target/explanatory raster data 
 # will be used to predict resposes
 print "Loading explanatory raster data"
-target_xs, gt, shape = load_targets( explanatory_rasters, explanatory_fields)
+target_xs, raster_info = load_targets( explanatory_rasters, explanatory_fields)
 
 ###############################################################################
 # Impute response rasters
 # default to standard naming convention for outputs
 # data gets dumped to an output directory
 print "Imputing response rasters"
-impute(target_xs, rf, gt, shape, outdir="out1", linechunk=None)
+impute(target_xs, rf, raster_info, outdir="out2",
+       linechunk=None, class_prob=True, certainty=True)
