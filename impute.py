@@ -5,14 +5,7 @@ import math
 from osgeo import gdal
 
 
-def load_training(infile, response_field, explanatory_fields, rasters=None):
-    """
-    train_x, train_y, class_names, feature_names = load_training(
-    'pts.shp',  # A shapefile or csv containing point observations with known responses
-        response_field="zone",  # the column name holding the response; should be integer
-        explanatory_fields=['precip'],  # the column names holding explanatory variables
-        rasters={'dem': 'elev10m.tif'}  # optional. Rasters to derive explanatory variables with zonal stats.
-    """
+def load_training(infile, response_field, explanatory_fields):
     data = pd.read_csv(infile)
     train_y = np.asarray(data[response_field])
     train_xs = np.float32(np.asarray(data[explanatory_fields]))
@@ -20,6 +13,26 @@ def load_training(infile, response_field, explanatory_fields, rasters=None):
     # todo scale
     return train_xs, train_y
 
+def load_training_from_rasters(selected, response_raster, explanatory_rasters):
+    ds = gdal.Open(response_raster)
+    if ds is None:
+        raise Exception("%s not found" % strata_data)
+    response_data = ds.ReadAsArray().flatten()
+    train_y = response_data[selected]
+    #selected_data['response'] = response_data[selected]
+    #selected_data['raster_index'] = selected
+
+    selected_data = {}
+    for var, rast in explanatory_rasters.items():
+        ds = gdal.Open(rast)
+        if ds is None:
+            raise Exception("%s not found" % strata_data)
+        explanatory_data = ds.ReadAsArray().flatten()
+        assert explanatory_data.size == response_data.size
+        selected_data[var] = explanatory_data[selected]
+
+    train_xs = np.asarray(pd.DataFrame(selected_data))
+    return train_xs, train_y
 
 def load_targets(targets, explanatory_fields):
     explanatory_raster_arrays = []
@@ -54,7 +67,9 @@ def load_targets(targets, explanatory_fields):
     return expl, gt, shape
 
 
-def impute(target_xs, rf, gt, shape, outdir="output", linechunk=1000, class_prob=True, certainty=True):
+def impute(target_xs, rf, gt, shape, outdir="output",
+           linechunk=1000, class_prob=True, certainty=True):
+
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 

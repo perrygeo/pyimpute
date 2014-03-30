@@ -29,9 +29,12 @@ There are a number of existing tools that could be leveraged to support this wor
 
 1. Loading spatial data
 	* Easiest method: import table containing training observations with both explanatory and response variables.
-	* User inputs explanatory rasters, observation vector dataset, response columns
-	* Use python-rasters-stats to grab the data from explanatory rasters
-	* Use pandas/numpy to construct arrays: explanatory variables vs. obs and response variable vs. observations
+	    * User inputs explanatory rasters, observation vector dataset, response columns
+	    
+	* Alternate method: perform random stratified sampling on a response data
+	and generate training data from rasters
+
+	* Another alternate method: Use python-rasters-stats to grab the data from explanatory rasters using point data
 
 2. Fit a classification or regression model
 	* Leverage scikit-learn classifiers or regressors
