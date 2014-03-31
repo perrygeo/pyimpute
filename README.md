@@ -1,10 +1,9 @@
-## Spatial Imputation for Python
+## Python module for geospatial prediction using supervised classification and regression. 
 
 
 ### Overview
 
-**Imputation**, in the context of spatial data, is
-a technique for estimating detailed characteristics of the landscape based on 
+*Geospatial prediction* is a broad term for techniques aimed at estimating detailed characteristics of the landscape based on 
 sparse observations. The observations, known as the **training data**, contain:
 
 * **explanatory** variables: relatively inexpensive to measure or predict; explain the spatial patterns of response variables 
@@ -14,16 +13,17 @@ The **target data** contains *only* explanatory variables represented by full co
 
 The ultimate goal is to predict spatially-explicit responses based on the target data. It is very similar to the concept of "supervised classification" in remote sensing but can also be used to predict continuious variables (i.e. regression)
 
+### The goal of this module 
 
-### The goal of this library
+`geopredict` helps optimize and streamline the process of predicting spatial data through supervised classification and regression. 
 
-Build a python library to streamline the process of imputing spatial data. This will allow us to 
+`geopredict`, quite honestly, doesn't do much other than provide 
+some powerful, high-level utility functions that leverage the raster data tools of GDAL and the machine learning algorithms of scikit-learn
 
+Having a clean workflow for spatial predictions will allow us to:
 * frequently update predictions with new information (e.g. new Landsat imagery as it becomes available)
 * explore new variables more easily
-* bring the technique to other disciplines and geographies (has been applied primarily to forestry)
-
-There are a number of existing tools that could be leveraged to support this workflow:
+* bring the technique to other disciplines and geographies
 
 ### The process
 
@@ -88,6 +88,9 @@ Depending on the classifier you use, memory and/or time might become limited.
 
 The `impute` method takes an optional argument, (`linechunk`) which calibrates the performance. 
 Specifically, it determines how many lines/rows of the raster file are processed at once. 
+
+**tl;dr;** You want to set `linechunk` as high as possible without exceeding your memory capacity.
+
 In this example, I use the RandomForest classifier. Other classifiers may exhibit different behavior
 but, in general, there is a tradeoff between speed and memory;
 
@@ -99,6 +102,9 @@ while performance increases *exponentially*.
 
 ![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/time.png)
 
-**tl;dr;** You want to set `linechunk` as high as possible without exceeding your memory capacity.
 
+
+#### Note about geostatistics
+While kriging and other geostatistical techniques are technically "geospatial prediction", they rely on spatial dependence between observations. The problems for which this module was built are landscape scale 
+and rarely suited to such approaches. There is great potential to meld the two approaches (i.e. consider spatial autocorrelation between training data as well as explanatory variables) but this is currently outside the scope of this module.
 
