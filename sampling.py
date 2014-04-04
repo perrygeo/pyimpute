@@ -61,8 +61,6 @@ def raster_stratified_sample(strata_data,
     return np.array(selected)
 
 
-
-
 if __name__ == "__main__":
     response_raster = "data/responses.tif"
     selected = raster_stratified_sample(response_raster)

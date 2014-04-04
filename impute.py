@@ -17,7 +17,7 @@ def load_training_from_rasters(selected, response_raster,
                                explanatory_rasters, explanatory_fields):
     ds = gdal.Open(response_raster)
     if ds is None:
-        raise Exception("%s not found" % strata_data)
+        raise Exception("%s not found" % response_raster)
     response_data = ds.ReadAsArray().flatten()
     train_y = response_data[selected]
 
@@ -26,7 +26,7 @@ def load_training_from_rasters(selected, response_raster,
         rast = explanatory_rasters[var]
         ds = gdal.Open(rast)
         if ds is None:
-            raise Exception("%s not found" % strata_data)
+            raise Exception("%s not found" % rast)
         explanatory_data = ds.ReadAsArray().flatten()
         assert explanatory_data.size == response_data.size
         selected_data.append(explanatory_data[selected])
@@ -85,13 +85,13 @@ def impute(target_xs, rf, raster_info, outdir="output",
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    driver = gdal.GetDriverByName('GTiff')
+    driver = gdal.GetDriverByName('HFA')
     gt = raster_info['gt']
     shape = raster_info['shape']
     srs = raster_info['srs']
 
     ## Create a new raster for responses
-    outds_response = driver.Create(os.path.join(outdir, "responses.tif"),
+    outds_response = driver.Create(os.path.join(outdir, "responses.img"),
                                    shape[1], shape[0], 1, gdal.GDT_UInt16)
     outds_response.SetGeoTransform(gt)
     outds_response.SetProjection(srs)
@@ -100,7 +100,7 @@ def impute(target_xs, rf, raster_info, outdir="output",
     ## Create a new raster for certainty
     ## We interpret certainty to be the max probability across classes
     if certainty:
-        outds_certainty = driver.Create(os.path.join(outdir, "certainty.tif"), 
+        outds_certainty = driver.Create(os.path.join(outdir, "certainty.img"), 
                                         shape[1], shape[0], 1, gdal.GDT_Float32)
         outds_certainty.SetGeoTransform(gt)
         outds_certainty.SetProjection(srs)
@@ -113,7 +113,7 @@ def impute(target_xs, rf, raster_info, outdir="output",
         outdss_classprob = []
         outbands_classprob = []
         for i, c in enumerate(classes):
-            ods = driver.Create(os.path.join(outdir, "probability_%s.tif" % c), 
+            ods = driver.Create(os.path.join(outdir, "probability_%s.img" % c), 
                                 shape[1], shape[0], 1, gdal.GDT_Float32)
             ods.SetGeoTransform(gt)
             ods.SetProjection(srs)
@@ -127,7 +127,7 @@ def impute(target_xs, rf, raster_info, outdir="output",
 
     chunks = int(math.ceil(shape[0] / float(linechunk)))
     for chunk in range(chunks):
-        #print "Writing chunk %d of %d" % (chunk+1, chunks)
+        print "Writing chunk %d of %d" % (chunk+1, chunks)
         row = chunk * linechunk
         if row + linechunk > shape[0]:
             linechunk = shape[0] - row

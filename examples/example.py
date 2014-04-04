@@ -20,7 +20,7 @@ train_xs, train_y = load_training(
 ###############################################################################
 # Set up classifier
 print "Training classifier"
-rf = RandomForestClassifier(n_estimators=10, n_jobs=-1)
+rf = RandomForestClassifier(n_estimators=20, n_jobs=-1)
 rf.fit(train_xs, train_y)  # fit the classifier to the training data
 
 ###############################################################################
@@ -50,4 +50,4 @@ target_xs, raster_info = load_targets({
 # data gets dumped to an output directory
 print "Imputing response rasters"
 impute(target_xs, rf, raster_info, outdir="out1", 
-       linechunk=None, class_prob=False, certainty=False)
+       linechunk=None, class_prob=True, certainty=True)
