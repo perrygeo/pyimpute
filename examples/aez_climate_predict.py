@@ -84,9 +84,18 @@ except IOError:
 print acc
 
 ###############################################################################
+# Assess feature importance
+fimp = dict(zip([str(x) for x in explanatory_fields], rf.feature_importances_))
+from pprint import pprint
+pprint(fimp)
+
+sys.exit()
+
+###############################################################################
 # Load the target/explanatory raster data 
 # will be used to predict resposes
-rcps = ["RCP45", "RCP85"] 
+#rcps = ["RCP45", "RCP85"] 
+rcps = ["RCP85"] 
 years = ["2030s", "2050s", "2070s", "2080s"]
 
 print "Imputing response rasters FOR CURRENT DATA"
