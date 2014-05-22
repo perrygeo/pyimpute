@@ -5,12 +5,30 @@ import math
 from osgeo import gdal
 
 
-def load_training_csv(infile, response_field, explanatory_fields):
-    data = pd.read_csv(infile)
-    train_y = np.asarray(data[response_field])
-    train_xs = np.float32(np.asarray(data[explanatory_fields]))
+def load_training_vector(response_shapes, explanatory_rasters, response_field, metric='mean'):
+    from rasterstats import raster_stats
+    explanatory_dfs = []
+    fldnames = []
 
-    # todo scale
+    for i, raster in enumerate(explanatory_rasters):
+        print "Rasters stats on", raster
+        stats = raster_stats(response_shapes, raster, stats="mean", copy_properties=True)
+        df = pd.DataFrame(stats, columns=["__fid__", response_field, metric])
+        fldname = "%s_%d" % (metric, i)
+        fldnames.append(fldname)
+
+        df.rename(columns={metric: fldname,}, inplace=True)
+        explanatory_dfs.append(df)
+
+    current = explanatory_dfs[0]
+    for i, frame in enumerate(explanatory_dfs[1:], 2):
+        current = current.merge(frame, on=['__fid__', response_field])
+
+    train_y = np.array(current[response_field])
+    train_xs = np.array(current[fldnames])
+
+
+    #################################### TODO filter nodata
     return train_xs, train_y
 
 
@@ -70,6 +88,7 @@ def load_targets(explanatory_rasters):
     srs = None
 
     for raster in explanatory_rasters:
+        print raster
         r = gdal.Open(raster)
         if r is None:
             raise Exception("%s not found" % raster)
