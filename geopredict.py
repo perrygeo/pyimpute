@@ -5,7 +5,7 @@ import math
 from osgeo import gdal
 
 
-def load_training(infile, response_field, explanatory_fields):
+def load_training_csv(infile, response_field, explanatory_fields):
     data = pd.read_csv(infile)
     train_y = np.asarray(data[response_field])
     train_xs = np.float32(np.asarray(data[explanatory_fields]))
@@ -13,34 +13,63 @@ def load_training(infile, response_field, explanatory_fields):
     # todo scale
     return train_xs, train_y
 
-def load_training_from_rasters(selected, response_raster, 
-                               explanatory_rasters, explanatory_fields):
+
+def load_training_rasters(response_raster, explanatory_rasters, selected=None):
+    """
+    Parameters
+    ----------
+    response_raster : Path to GDAL raster containing responses
+    explanatory_rasters : List of Paths to GDAL rasters containing explanatory variables
+
+    Returns
+    -------
+    train_xs : Array of explanatory variables
+    train_ys : 1xN array of known responses
+    """
+
     ds = gdal.Open(response_raster)
     if ds is None:
         raise Exception("%s not found" % response_raster)
     response_data = ds.ReadAsArray().flatten()
-    train_y = response_data[selected]
+
+    if selected is None:
+        train_y = response_data
+    else:
+        train_y = response_data[selected]
 
     selected_data = []
-    for var in explanatory_fields:
-        rast = explanatory_rasters[var]
+    for rast in explanatory_rasters:
         ds = gdal.Open(rast)
         if ds is None:
             raise Exception("%s not found" % rast)
         explanatory_data = ds.ReadAsArray().flatten()
         assert explanatory_data.size == response_data.size
-        selected_data.append(explanatory_data[selected])
+        if selected is None:
+            selected_data.append(explanatory_data)
+        else:
+            selected_data.append(explanatory_data[selected])
 
     train_xs = np.asarray(selected_data).T
     return train_xs, train_y
 
-def load_targets(targets, explanatory_fields):
+def load_targets(explanatory_rasters):
+    """
+    Parameters
+    ----------
+    explanatory_rasters : List of Paths to GDAL rasters containing explanatory variables
+
+    Returns
+    -------
+    expl : Array of explanatory variables
+    raster_info : dict of raster info
+    """
+
     explanatory_raster_arrays = []
     gt = None
     shape = None
     srs = None
-    for fld in explanatory_fields:
-        raster = targets[fld]
+
+    for raster in explanatory_rasters:
         r = gdal.Open(raster)
         if r is None:
             raise Exception("%s not found" % raster)
@@ -163,3 +192,69 @@ def impute(target_xs, rf, raster_info, outdir="output",
 
     outds_certainty = None
     outds_response = None
+
+
+
+
+def stratified_sample_raster(strata_data, 
+                              target_sample_size=30,
+                              min_sample_proportion=0.1):
+    """
+    Parameters
+    ----------
+    strata_data: Path to raster dataset containing strata to sample from (e.g. zones)
+
+    Returns
+    -------
+    selected: array of selected indices
+    """
+    ds = gdal.Open(strata_data)
+    if ds is None:
+        raise Exception("%s not found" % strata_data)
+    strata2D = ds.ReadAsArray()
+    strata = strata2D.flatten()
+    index_array = np.arange(strata.size)
+
+    # construct a dictionary of lists,
+    # keys are stratum ids
+    # values are list of indices
+    sample = dict([(int(s),[]) for s in np.unique(strata)])
+    satisfied = []
+
+    # counts for proportion-based constraints
+    bins = np.bincount(strata)
+    ii = np.nonzero(bins)[0]
+    stratum_count = dict(zip(ii,bins[ii]))
+
+    # shuffle the indices and loop until the sample satisfied our constraints
+    np.random.shuffle(index_array)
+    for idx in index_array:
+        stratum = strata[index_array[idx]]
+        if stratum in satisfied:
+            continue
+        sample[stratum].append(idx)
+        nsamples = len(sample[stratum])
+        # constraints -> hit the target sample size OR proportion of total 
+        # (whichever is highest)
+        target = stratum_count[stratum] * min_sample_proportion
+        if target < target_sample_size:
+            target = target_sample_size
+        if nsamples >= target:
+            satisfied.append(stratum)
+        if len(satisfied) == len(sample.keys()):
+            break
+    
+    # convert sampled indicies into a list of indicies
+    selected = []
+    for k, v in sample.items():
+        # check for stratum with < target sample size
+        # print k, len(v)
+        if len(v) < target_sample_size:
+            # if we have too few samples, drop them
+            #warnings.warn("Stratum %s has only %d samples, dropped" % (k, len(v)))
+            pass
+        else:
+            selected.extend(v)
+
+    return np.array(selected)
+ 

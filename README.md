@@ -70,7 +70,7 @@ Having a clean workflow for spatial predictions will allow us to:
 
 ### Example
 
-Please check out [the example script](https://github.com/perrygeo/python-impute/blob/master/example.py)
+Please check out [the examples](https://github.com/perrygeo/python-impute/blob/master/examples/)
 
 This example walks through the main steps of loading training data, setting up and evaluating a classifier, and using it to predict a raster of the response variable.
 
