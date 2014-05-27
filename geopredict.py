@@ -3,21 +3,43 @@ import numpy as np
 import os
 import math
 from osgeo import gdal
+import logging
+logger = logging.getLogger('geopredict')
 
 
 def load_training_vector(response_shapes, explanatory_rasters, response_field, metric='mean'):
+    """
+    Parameters
+    ----------
+    response_shapes : Source of vector features for raster_stats; 
+                      can be OGR file path or iterable of geojson-like features
+    response_field : Field name containing the known response category (must be numeric)
+    explanatory_rasters : List of Paths to GDAL rasters containing explanatory variables
+    metric : Statistic to aggregate explanatory data across line and polygon vector features
+             Defaults to 'mean' (optional)
+
+    Returns
+    -------
+    train_xs : Array of explanatory variables
+    train_ys : 1xN array of known responses
+    """
     from rasterstats import raster_stats
     explanatory_dfs = []
     fldnames = []
 
     for i, raster in enumerate(explanatory_rasters):
-        print "Rasters stats on", raster
+        logger.debug("Rasters stats on %s" % raster)
         stats = raster_stats(response_shapes, raster, stats="mean", copy_properties=True)
         df = pd.DataFrame(stats, columns=["__fid__", response_field, metric])
         fldname = "%s_%d" % (metric, i)
         fldnames.append(fldname)
 
         df.rename(columns={metric: fldname,}, inplace=True)
+        orig_count = df.shape[0]
+        df = df[pd.notnull(df[fldname])]
+        new_count = df.shape[0]
+        if (orig_count - new_count) > 0:
+            logger.warn('Dropping %d rows due to nans' % (orig_count - new_count))
         explanatory_dfs.append(df)
 
     current = explanatory_dfs[0]
@@ -27,8 +49,6 @@ def load_training_vector(response_shapes, explanatory_rasters, response_field, m
     train_y = np.array(current[response_field])
     train_xs = np.array(current[fldnames])
 
-
-    #################################### TODO filter nodata
     return train_xs, train_y
 
 
@@ -70,6 +90,7 @@ def load_training_rasters(response_raster, explanatory_rasters, selected=None):
     train_xs = np.asarray(selected_data).T
     return train_xs, train_y
 
+
 def load_targets(explanatory_rasters):
     """
     Parameters
@@ -88,7 +109,7 @@ def load_targets(explanatory_rasters):
     srs = None
 
     for raster in explanatory_rasters:
-        print raster
+        logger.debug(raster)
         r = gdal.Open(raster)
         if r is None:
             raise Exception("%s not found" % raster)
@@ -127,9 +148,22 @@ def load_targets(explanatory_rasters):
     return expl, raster_info
 
 
-def impute(target_xs, rf, raster_info, outdir="output",
+def impute(target_xs, clf, raster_info, outdir="output",
            linechunk=1000, class_prob=True, certainty=True):
+    """
+    Parameters
+    ----------
+    target_xs: Array of explanatory variables for which to predict responses
+    clf: instance of a scikit-learn Classifier
+    raster_info: dictionary of raster attributes with key 'gt', 'shape' and 'srs'
 
+    Options
+    -------
+    outdir : output directory
+    linechunk : number of lines to process per pass; reduce only if memory is constrained
+    class_prob : Boolean. Should we create a probability raster for each class?
+    certainty : Boolean. Should we produce a raster of overall classification certainty? 
+    """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
@@ -156,7 +190,7 @@ def impute(target_xs, rf, raster_info, outdir="output",
 
     ## Create a new rasters for probability of each class
     if class_prob:
-        classes = list(rf.classes_)
+        classes = list(clf.classes_)
         # classes.index(70)  # find the idx of class 70
         outdss_classprob = []
         outbands_classprob = []
@@ -175,7 +209,7 @@ def impute(target_xs, rf, raster_info, outdir="output",
 
     chunks = int(math.ceil(shape[0] / float(linechunk)))
     for chunk in range(chunks):
-        print "Writing chunk %d of %d" % (chunk+1, chunks)
+        logger.debug("Writing chunk %d of %d" % (chunk+1, chunks))
         row = chunk * linechunk
         if row + linechunk > shape[0]:
             linechunk = shape[0] - row
@@ -184,12 +218,12 @@ def impute(target_xs, rf, raster_info, outdir="output",
         end = start + shape[1] * linechunk 
         line = target_xs[start:end,:]
 
-        responses = rf.predict(line)
+        responses = clf.predict(line)
         responses2D = responses.reshape((linechunk, shape[1]))
         outband_response.WriteArray(responses2D, xoff=0, yoff=row)
 
         if certainty or class_prob:
-            proba = rf.predict_proba(line)
+            proba = clf.predict_proba(line)
 
         if certainty:
             certaintymax = proba.max(axis=1)
@@ -211,7 +245,6 @@ def impute(target_xs, rf, raster_info, outdir="output",
 
     outds_certainty = None
     outds_response = None
-
 
 
 
@@ -267,7 +300,6 @@ def stratified_sample_raster(strata_data,
     selected = []
     for k, v in sample.items():
         # check for stratum with < target sample size
-        # print k, len(v)
         if len(v) < target_sample_size:
             # if we have too few samples, drop them
             #warnings.warn("Stratum %s has only %d samples, dropped" % (k, len(v)))
