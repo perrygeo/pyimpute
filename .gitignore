@@ -2,3 +2,5 @@
 out1/*
 out2/*
 *.prof
+examples/_*
+*.egg-info
