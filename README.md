@@ -7,8 +7,9 @@ The naming and core concept is based on the [yaImpute](http://cran.r-project.org
 
 ### Overview
 
-*Geospatial prediction* is a broad term for techniques aimed at estimating detailed characteristics of the landscape based on 
-sparse observations. The observations, known as the **training data**, contain:
+*Imputation* and *Geospatial prediction* are broad terms for techniques aimed at estimating spatially-explicity characteristics of the landscape based on sparse observations. 
+
+The observations, known as the **training data**, contain:
 
 * **explanatory** variables: relatively inexpensive to measure or predict; explain the spatial patterns of response variables 
 * **response** variables: relatively expensive or impossible to obtain
