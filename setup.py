@@ -8,16 +8,16 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name="geopredict",
+    name="pyimpute",
     version="0.0.1",
     author="Matthew Perry",
     author_email="perrygeo@gmail.com",
     description=("Utilities for applying scikit-learn to spatial datasets"),
     license="BSD",
     keywords="gis geospatial geographic raster vector zonal statistics machinelearning",
-    url="https://github.com/perrygeo/geopredict",
+    url="https://github.com/perrygeo/pyimpute",
     package_dir={'': 'src'},
-    packages=['geopredict'],
+    packages=['pyimpute'],
     long_description=read('README.md'),
     install_requires=[
         'pandas',

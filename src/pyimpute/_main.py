@@ -4,7 +4,7 @@ import os
 import math
 from osgeo import gdal
 import logging
-logger = logging.getLogger('geopredict')
+logger = logging.getLogger('pyimpute')
 
 
 def load_training_vector(response_shapes, explanatory_rasters, response_field, metric='mean'):

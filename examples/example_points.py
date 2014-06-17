@@ -1,14 +1,14 @@
 from __future__ import print_function
 import sys
 import os
-from geopredict import load_training_vector, load_targets, impute
+from pyimpute import load_training_vector, load_targets, impute
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn import cross_validation
 import json
 import numpy as np
 
 import logging
-logger = logging.getLogger('geopredict')
+logger = logging.getLogger('pyimpute')
 logger.setLevel(logging.DEBUG)
 sh = logging.StreamHandler(stream=sys.stdout)
 logger.addHandler(sh)

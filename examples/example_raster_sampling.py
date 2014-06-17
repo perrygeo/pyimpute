@@ -1,14 +1,14 @@
 from __future__ import print_function
 import sys
 import os
-from geopredict import load_training_rasters, load_targets, impute
-from geopredict import stratified_sample_raster
+from pyimpute import load_training_rasters, load_targets, impute
+from pyimpute import stratified_sample_raster
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn import cross_validation
 from collections import OrderedDict
 
 import logging
-logger = logging.getLogger('geopredict')
+logger = logging.getLogger('pyimpute')
 logger.setLevel(logging.DEBUG)
 sh = logging.StreamHandler(stream=sys.stdout)
 logger.addHandler(sh)
