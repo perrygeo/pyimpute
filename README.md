@@ -1,4 +1,8 @@
-## Python module for geospatial prediction using supervised classification and regression. 
+## Python module for geospatial prediction using scikit-learn and GDAL
+
+*Impute*: Estimating missing data by inference.
+
+The naming and core concept is based on the [yaImpute](http://cran.r-project.org/web/packages/yaImpute/index.html) R Package.
 
 
 ### Overview
