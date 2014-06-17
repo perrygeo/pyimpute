@@ -20,9 +20,9 @@ The ultimate goal is to predict spatially-explicit responses based on the target
 
 ### The goal of this module 
 
-`geopredict` helps optimize and streamline the process of predicting spatial data through supervised classification and regression. 
+`pyimpute` helps optimize and streamline the process of predicting spatial data through supervised classification and regression. 
 
-`geopredict`, quite honestly, doesn't do much other than provide 
+`pyimpute`, quite honestly, doesn't do much other than provide 
 some powerful, high-level utility functions that leverage the raster data tools of GDAL and the machine learning algorithms of scikit-learn
 
 Having a clean workflow for spatial predictions will allow us to:
