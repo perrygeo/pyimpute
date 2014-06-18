@@ -20,8 +20,14 @@ The ultimate goal is to predict spatially-explicit responses based on the target
 
 ### Installation
 
+Install some prerequisites (unless you want to have pip compile them for you)...
 ```
-pip install -e git+https://github.com/perrygeo/pyimpute.git#egg=pyimpute
+python setup.py python-numpy python-gdal python-pandas 
+```
+
+and go...
+```
+pip install pyimpute
 ```
 
 Then check out the [examples](https://github.com/perrygeo/python-impute/blob/master/examples/).
