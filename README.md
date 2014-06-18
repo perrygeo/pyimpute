@@ -18,12 +18,20 @@ The **target data** contains *only* explanatory variables represented by full co
 
 The ultimate goal is to predict spatially-explicit responses based on the target data. It is very similar to the concept of "supervised classification" in remote sensing but can also be used to predict continuious variables (i.e. regression)
 
-### The goal of this module 
+### Installation
+
+```
+pip install -e git+https://github.com/perrygeo/pyimpute.git#egg=pyimpute
+```
+
+Then check out the [examples](https://github.com/perrygeo/python-impute/blob/master/examples/).
+
+### The goal of pyimpute
 
 `pyimpute` helps optimize and streamline the process of predicting spatial data through supervised classification and regression. 
 
-`pyimpute`, quite honestly, doesn't do much other than provide 
-some powerful, high-level utility functions that leverage the raster data tools of GDAL and the machine learning algorithms of scikit-learn
+`pyimpute` doesn't do much other than provide some powerful, high-level utility functions 
+that leverage the raster data tools of GDAL and the machine learning algorithms of scikit-learn
 
 Having a clean workflow for spatial predictions will allow us to:
 * frequently update predictions with new information (e.g. new Landsat imagery as it becomes available)
@@ -33,12 +41,9 @@ Having a clean workflow for spatial predictions will allow us to:
 ### The process
 
 1. Loading spatial data
-	* Easiest method: import table containing training observations with both explanatory and response variables.
-	    * User inputs explanatory rasters, observation vector dataset, response columns
-	    
+	* Easiest method: import table containing training observations with both explanatory and response variables.  
 	* Alternate method: perform random stratified sampling on a response data
 	and generate training data from rasters
-
 	* Another alternate method: Use python-rasters-stats to grab the data from explanatory rasters using point data
 
 2. Fit a classification or regression model
