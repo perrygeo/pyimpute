@@ -1,0 +1,3 @@
+include LICENSE.txt README.md
+exclude MANIFEST.in
+exclude Vagrantfile

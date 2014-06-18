@@ -4,3 +4,5 @@ out2/*
 *.prof
 examples/_*
 *.egg-info
+dist/*
+build/*
