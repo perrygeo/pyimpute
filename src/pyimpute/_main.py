@@ -148,8 +148,7 @@ def load_targets(explanatory_rasters):
     return expl, raster_info
 
 
-def impute(target_xs, clf, raster_info, outdir="output",
-           linechunk=1000, class_prob=True, certainty=True):
+def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_prob=True, certainty=True):
     """
     Parameters
     ----------
@@ -247,10 +246,7 @@ def impute(target_xs, clf, raster_info, outdir="output",
     outds_response = None
 
 
-
-def stratified_sample_raster(strata_data, 
-                              target_sample_size=30,
-                              min_sample_proportion=0.1):
+def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_proportion=0.1):
     """
     Parameters
     ----------

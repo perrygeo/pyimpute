@@ -30,7 +30,15 @@ and go...
 pip install pyimpute
 ```
 
-Then check out the [examples](https://github.com/perrygeo/python-impute/blob/master/examples/).
+Alternatively, grab the source code and go...
+```
+git clone https://github.com/perrygeo/pyimpute.git
+cd pyimpute
+python setup.py develop
+python setup.py test
+```
+
+Finally, check out the [examples](https://github.com/perrygeo/python-impute/blob/master/examples/).
 
 ### The goal of pyimpute
 

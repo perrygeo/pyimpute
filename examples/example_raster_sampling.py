@@ -25,7 +25,7 @@ def main():
 
     # Take a random stratified sample
     selected = stratified_sample_raster(response_raster,
-        target_sample_size=20, min_sample_proportion=0.001)
+        target_sample_size=20, min_sample_proportion=0.01)
   
     # Load the training rasters using the sampled subset
     train_xs, train_y = load_training_rasters(response_raster, 
@@ -49,7 +49,9 @@ def main():
     target_xs, raster_info = load_targets(explanatory_rasters)
 
     impute(target_xs, clf, raster_info, outdir="_aez_output_current",
-           linechunk=40, class_prob=True, certainty=True)
+           linechunk=400, class_prob=True, certainty=True)
+
+    sys.exit()
 
     years = ['2070s']
     for year in years:

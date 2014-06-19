@@ -7,6 +7,19 @@ from setuptools.command.test import test as TestCommand
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+
+class PyTest(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
+
+
 setup(
     name="pyimpute",
     version="0.0.2",
@@ -23,10 +36,11 @@ setup(
         'pandas',
         'scikit-learn',
         'numpy',
+        'rasterstats',
         'GDAL',
     ],
-    #tests_require=['pytest', 'pyshp>=1.1.4', 'coverage'],
-    #cmdclass = {'test': PyTest},
+    tests_require=['pytest', 'pyshp>=1.1.4', 'coverage'],
+    cmdclass = {'test': PyTest},
     classifiers=[
         "Development Status :: 1 - Planning",
         "Topic :: Utilities",
