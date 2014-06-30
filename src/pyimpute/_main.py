@@ -1,9 +1,12 @@
+from __future__ import print_function
 import pandas as pd
 import numpy as np
 import os
 import math
 from osgeo import gdal
 import logging
+from sklearn import metrics
+from sklearn import cross_validation
 logger = logging.getLogger('pyimpute')
 
 
@@ -305,3 +308,39 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
 
     return np.array(selected)
  
+def evaluate_clf(clf, X, y, k=4, test_size=0.5, scoring="f1", feature_names=None):
+    """
+    Evalate the classifier on the FULL training dataset
+    This takes care of fitting on train/test splits
+    """
+    X_train, X_test, y_train, y_true = cross_validation.train_test_split(
+        X, y, test_size=test_size)
+
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+
+    print("Accuracy Score: %f" % metrics.accuracy_score(y_true, y_pred))
+    print()
+
+    print("Classification report")
+    print(metrics.classification_report(y_true, y_pred))
+    print()
+
+    print("Confussion matrix")
+    print(metrics.confusion_matrix(y_true, y_pred))
+    print()
+
+    print("Feature importances")
+    if not feature_names:
+        feature_names = ["%d" % i for i in xrange(X.shape[1])]
+    for f, imp in zip(feature_names, clf.feature_importances_):
+        print("%20s: %s" % (f, round(imp * 100, 1)))
+    print()
+
+    if k:
+        print("Cross validation")
+        kf = cross_validation.KFold(len(y), n_folds=k)
+        scores = cross_validation.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
+        print(scores)
+        print("%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (k, scores.mean() * 100, scores.std() * 200))
+
