@@ -308,6 +308,7 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
 
     return np.array(selected)
  
+
 def evaluate_clf(clf, X, y, k=4, test_size=0.5, scoring="f1", feature_names=None):
     """
     Evalate the classifier on the FULL training dataset
