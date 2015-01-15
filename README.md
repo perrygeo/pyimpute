@@ -4,6 +4,9 @@
 
 The naming and core concept is based on the [yaImpute](http://cran.r-project.org/web/packages/yaImpute/index.html) R Package.
 
+See my presentation at FOSS4G 2014 for an overview:
+
+<iframe src="//player.vimeo.com/video/106235287" width="500" height="281" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe> <p><a href="http://vimeo.com/106235287">Spatial-Temporal Prediction of Climate Change Impacts using pyimpute, scikit-learn and GDAL — Matthew Perry</a> from <a href="http://vimeo.com/foss4g">FOSS4G</a> on <a href="https://vimeo.com">Vimeo</a>.</p>
 
 ### Overview
 
