@@ -27,6 +27,7 @@ before_install:
   - pip install wheel
 install:
   - pip install pytest
+  - travis_wait pip install scipy
   - pip install -r requirements.txt
   - pip install -e .
 script: "py.test"
