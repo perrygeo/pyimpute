@@ -27,9 +27,9 @@ def test_impute():
     impute(target_xs, clf, raster_info, outdir=TMPOUT,
            linechunk=400, class_prob=True, certainty=True)
 
-    assert os.path.exists(os.path.join(TMPOUT, "responses.img"))
-    assert os.path.exists(os.path.join(TMPOUT, "certainty.img"))
-    assert os.path.exists(os.path.join(TMPOUT, "probability_90.img"))
+    assert os.path.exists(os.path.join(TMPOUT, "responses.tif"))
+    assert os.path.exists(os.path.join(TMPOUT, "certainty.tif"))
+    assert os.path.exists(os.path.join(TMPOUT, "probability_90.tif"))
 
 
 def test_load_training_rasters():
@@ -54,7 +54,7 @@ def test_load_training_vector():
 def test_load_targets():
     from pyimpute import load_targets
     target_xs, raster_info = load_targets(explanatory_rasters)
-    assert sorted(raster_info.keys()) == ['gt', 'shape', 'srs']
+    assert sorted(raster_info.keys()) == ['affine', 'crs', 'shape']
     assert target_xs.shape == (38304, 7)
 
 

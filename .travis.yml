@@ -1,0 +1,36 @@
+language: python
+sudo: false
+cache:
+  directories:
+    - ~/.cache/pip
+env:
+  global:
+    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+addons:
+  apt:
+    packages:
+    - libgdal1h
+    - gdal-bin
+    - libgdal-dev
+    - libatlas-dev
+    - libatlas-base-dev
+    - liblapack-dev
+    - gfortran
+    - libgmp-dev
+    - libmpfr-dev
+python:
+  - "2.7"
+  - "3.4"
+before_install:
+  - pip install -U pip
+  - pip install wheel
+install:
+  - pip install pytest
+  - travis_wait pip wheel scipy
+  - travis_wait pip wheel -r requirements.txt
+  - pip install -r requirements.txt
+  - pip install -e .
+script: "py.test"
+after_success:
+  - coveralls

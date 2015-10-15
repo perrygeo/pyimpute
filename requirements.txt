@@ -1,4 +1,4 @@
-pandas
 scikit-learn
-gdal
+rasterio
+scipy
 rasterstats>=0.9
