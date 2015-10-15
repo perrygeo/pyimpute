@@ -1,9 +1,8 @@
 from __future__ import print_function
-import pandas as pd
+import rasterio
 import numpy as np
 import os
 import math
-from osgeo import gdal
 import logging
 from sklearn import metrics
 from sklearn import cross_validation
@@ -63,10 +62,8 @@ def load_training_rasters(response_raster, explanatory_rasters, selected=None):
     train_ys : 1xN array of known responses
     """
 
-    ds = gdal.Open(response_raster)
-    if ds is None:
-        raise Exception("%s not found" % response_raster)
-    response_data = ds.ReadAsArray().flatten()
+    with rasterio.open(response_raster) as src:
+        response_data = src.read().flatten()
 
     if selected is None:
         train_y = response_data
@@ -75,10 +72,8 @@ def load_training_rasters(response_raster, explanatory_rasters, selected=None):
 
     selected_data = []
     for rast in explanatory_rasters:
-        ds = gdal.Open(rast)
-        if ds is None:
-            raise Exception("%s not found" % rast)
-        explanatory_data = ds.ReadAsArray().flatten()
+        with rasterio.open(rast) as src:
+            explanatory_data = src.read().flatten()
         assert explanatory_data.size == response_data.size
         if selected is None:
             selected_data.append(explanatory_data)
@@ -102,46 +97,43 @@ def load_targets(explanatory_rasters):
     """
 
     explanatory_raster_arrays = []
-    gt = None
+    aff = None
     shape = None
-    srs = None
+    crs = None
 
     for raster in explanatory_rasters:
         logger.debug(raster)
-        r = gdal.Open(raster)
-        if r is None:
-            raise Exception("%s not found" % raster)
-        ar = r.ReadAsArray()
-        
-        # Save or check the geotransform
-        if not gt:
-            gt = r.GetGeoTransform()
-        else:
-            assert gt == r.GetGeoTransform()
-        
-        # Save or check the shape
-        if not shape:
-            shape = ar.shape
-        else:
-            assert shape == ar.shape
-            
-        # Save or check the geotransform
-        if not srs:
-            srs = r.GetProjection()
-        else:
-            assert srs == r.GetProjection()
+        with rasterio.open(raster) as src:
+            ar = src.read(1)  # TODO band num? 
+
+            # Save or check the geotransform
+            if not aff:
+                aff = src.affine
+            else:
+                assert aff == src.affine
+
+            # Save or check the shape
+            if not shape:
+                shape = ar.shape
+            else:
+                assert shape == ar.shape
+
+            # Save or check the geotransform
+            if not crs:
+                crs = src.crs
+            else:
+                assert crs == src.crs
 
         # Flatten in one dimension
         arf = ar.flatten()
         explanatory_raster_arrays.append(arf)
 
-        # TODO scale
-
     expl = np.array(explanatory_raster_arrays).T
+
     raster_info = {
-        'gt': gt,
+        'affine': aff,
         'shape': shape,
-        'srs': srs
+        'crs': crs
     }
     return expl, raster_info
 
@@ -159,89 +151,89 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
     outdir : output directory
     linechunk : number of lines to process per pass; reduce only if memory is constrained
     class_prob : Boolean. Should we create a probability raster for each class?
-    certainty : Boolean. Should we produce a raster of overall classification certainty? 
+    certainty : Boolean. Should we produce a raster of overall classification certainty?
     """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    driver = gdal.GetDriverByName('HFA')
-    gt = raster_info['gt']
     shape = raster_info['shape']
-    srs = raster_info['srs']
 
-    ## Create a new raster for responses
-    outds_response = driver.Create(os.path.join(outdir, "responses.img"),
-                                   shape[1], shape[0], 1, gdal.GDT_UInt16)
-    outds_response.SetGeoTransform(gt)
-    outds_response.SetProjection(srs)
-    outband_response = outds_response.GetRasterBand(1)
+    profile = {
+        'affine': raster_info['affine'],
+        'blockxsize': shape[1],
+        'height': shape[0],
+        'blockysize': 1,
+        'count': 1,
+        'crs': raster_info['crs'],
+        'driver': u'GTiff',
+        'dtype': 'int16',
+        'nodata': -32768,
+        'tiled': False,
+        'transform': raster_info['affine'].to_gdal(),
+        'width': shape[1]}
 
-    ## Create a new raster for certainty
-    ## We interpret certainty to be the max probability across classes
-    if certainty:
-        outds_certainty = driver.Create(os.path.join(outdir, "certainty.img"), 
-                                        shape[1], shape[0], 1, gdal.GDT_Float32)
-        outds_certainty.SetGeoTransform(gt)
-        outds_certainty.SetProjection(srs)
-        outband_certainty = outds_certainty.GetRasterBand(1)
+    if True:
+        response_path = os.path.join(outdir, "responses.tif")
+        response_ds = rasterio.open(response_path, 'w', **profile)
 
-    ## Create a new rasters for probability of each class
-    if class_prob:
-        classes = list(clf.classes_)
-        # classes.index(70)  # find the idx of class 70
-        outdss_classprob = []
-        outbands_classprob = []
-        for i, c in enumerate(classes):
-            ods = driver.Create(os.path.join(outdir, "probability_%s.img" % c), 
-                                shape[1], shape[0], 1, gdal.GDT_Float32)
-            ods.SetGeoTransform(gt)
-            ods.SetProjection(srs)
-            outdss_classprob.append(ods)
-            outbands_classprob.append(ods.GetRasterBand(1))
-
-        class_gdal = zip(outdss_classprob, outbands_classprob)
-
-    if not linechunk:
-        linechunk = shape[1]
-
-    chunks = int(math.ceil(shape[0] / float(linechunk)))
-    for chunk in range(chunks):
-        logger.debug("Writing chunk %d of %d" % (chunk+1, chunks))
-        row = chunk * linechunk
-        if row + linechunk > shape[0]:
-            linechunk = shape[0] - row
-
-        start = shape[1] * row
-        end = start + shape[1] * linechunk 
-        line = target_xs[start:end,:]
-
-        responses = clf.predict(line)
-        responses2D = responses.reshape((linechunk, shape[1]))
-        outband_response.WriteArray(responses2D, xoff=0, yoff=row)
-
-        if certainty or class_prob:
-            proba = clf.predict_proba(line)
-
+        profile['dtype'] = 'float32'
         if certainty:
-            certaintymax = proba.max(axis=1)
-            certainty2D = certaintymax.reshape((linechunk, shape[1]))
-            outband_certainty.WriteArray(certainty2D, xoff=0, yoff=row)
-          
-        # write out probabilities for each class as a separate raster
+            certainty_path = os.path.join(outdir, "certainty.tif")
+            certainty_ds = rasterio.open(certainty_path, 'w', **profile)
+
+        class_dss = []
         if class_prob:
-            for cls_index, ds_band in enumerate(class_gdal):
-                proba_class = proba[:, cls_index]
-                classcert2D = proba_class.reshape((linechunk, shape[1]))
-                ds, band = ds_band
-                band.WriteArray(classcert2D, xoff=0, yoff=row)
-                ds.FlushCache()
+            classes = list(clf.classes_)
+            class_paths = []
+            for i, c in enumerate(classes):
+                ods = os.path.join(outdir, "probability_%s.img" % c)
+                class_paths.append(ods)
+            for p in class_paths:
+                class_dss.append(rasterio.open(p, 'w', **profile))
 
+        # Chunky logic
+        if not linechunk:
+            linechunk = shape[0]
+        chunks = int(math.ceil(shape[0] / float(linechunk)))
+
+        for chunk in range(chunks):
+            logger.debug("Writing chunk %d of %d" % (chunk+1, chunks))
+            row = chunk * linechunk
+            if row + linechunk > shape[0]:
+                linechunk = shape[0] - row
+            # in 1D space
+            start = shape[1] * row
+            end = start + shape[1] * linechunk
+            line = target_xs[start:end, :]
+
+            window = ((row, row + linechunk), (0, shape[1]))
+
+            # Predict
+            responses = clf.predict(line)
+            responses2D = responses.reshape((linechunk, shape[1])).astype('int16')
+            response_ds.write_band(1, responses2D, window=window)
+
+            if certainty or class_prob:
+                proba = clf.predict_proba(line)
+
+            # Certainty
+            if certainty:
+                certaintymax = proba.max(axis=1)
+                certainty2D = certaintymax.reshape((linechunk, shape[1])).astype('float32')
+                certainty_ds.write_band(1, certainty2D, window=window)
+
+            # write out probabilities for each class as a separate raster
+            for i, class_ds in enumerate(class_dss):
+                proba_class = proba[:, i]
+                classcert2D = proba_class.reshape((linechunk, shape[1])).astype('float32')
+                class_ds.write_band(1, classcert2D, window=window)
+
+    if True:
+        response_ds.close()
         if certainty:
-            outds_certainty.FlushCache()
-        outds_response.FlushCache()
-
-    outds_certainty = None
-    outds_response = None
+            certainty_ds.close()
+        for class_ds in class_dss:
+            class_ds.close()
 
 
 def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_proportion=0.1):
@@ -254,11 +246,8 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
     -------
     selected: array of selected indices
     """
-    ds = gdal.Open(strata_data)
-    if ds is None:
-        raise Exception("%s not found" % strata_data)
-    strata2D = ds.ReadAsArray()
-    strata = strata2D.flatten()
+    with rasterio.open(strata_data) as src:
+        strata = src.read().flatten()
     index_array = np.arange(strata.size)
 
     # construct a dictionary of lists,
@@ -280,7 +269,7 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
             continue
         sample[stratum].append(idx)
         nsamples = len(sample[stratum])
-        # constraints -> hit the target sample size OR proportion of total 
+        # constraints -> hit the target sample size OR proportion of total
         # (whichever is highest)
         target = stratum_count[stratum] * min_sample_proportion
         if target < target_sample_size:
@@ -289,7 +278,7 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
             satisfied.append(stratum)
         if len(satisfied) == len(sample.keys()):
             break
-    
+
     # convert sampled indicies into a list of indicies
     selected = []
     for k, v in sample.items():
@@ -302,7 +291,7 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
             selected.extend(v)
 
     return np.array(selected)
- 
+
 
 def evaluate_clf(clf, X, y, k=4, test_size=0.5, scoring="f1", feature_names=None):
     """

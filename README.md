@@ -23,12 +23,8 @@ The ultimate goal is to predict spatially-explicit responses based on the target
 
 ### Installation
 
-Install some prerequisites (unless you want to have pip compile them for you)...
-```
-python setup.py python-numpy python-gdal python-pandas 
-```
+Assuming you have `libgdal` installed, you can install with pip 
 
-and go...
 ```
 pip install pyimpute
 ```
@@ -37,8 +33,7 @@ Alternatively, grab the source code and go...
 ```
 git clone https://github.com/perrygeo/pyimpute.git
 cd pyimpute
-python setup.py develop
-python setup.py test
+pip install -e .
 ```
 
 Finally, check out the [examples](https://github.com/perrygeo/python-impute/blob/master/examples/).

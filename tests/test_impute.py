@@ -54,7 +54,7 @@ def test_load_training_vector():
 def test_load_targets():
     from pyimpute import load_targets
     target_xs, raster_info = load_targets(explanatory_rasters)
-    assert sorted(raster_info.keys()) == ['gt', 'shape', 'srs']
+    assert sorted(raster_info.keys()) == ['affine', 'crs', 'shape']
     assert target_xs.shape == (38304, 7)
 
 

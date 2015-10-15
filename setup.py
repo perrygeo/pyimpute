@@ -22,7 +22,7 @@ class PyTest(TestCommand):
 
 setup(
     name="pyimpute",
-    version="0.0.3",
+    version="0.1",
     author="Matthew Perry",
     author_email="perrygeo@gmail.com",
     description=("Utilities for applying scikit-learn to spatial datasets"),
@@ -33,11 +33,10 @@ setup(
     packages=['pyimpute'],
     long_description=read('README.md'),
     install_requires=[
-        'pandas',
         'scikit-learn',
         'numpy',
         'rasterstats',
-        'GDAL',
+        'rasterio'
     ],
     tests_require=['pytest', 'pyshp>=1.1.4', 'coverage'],
     cmdclass = {'test': PyTest},
