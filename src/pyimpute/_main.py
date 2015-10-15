@@ -186,7 +186,7 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
             classes = list(clf.classes_)
             class_paths = []
             for i, c in enumerate(classes):
-                ods = os.path.join(outdir, "probability_%s.img" % c)
+                ods = os.path.join(outdir, "probability_%s.tif" % c)
                 class_paths.append(ods)
             for p in class_paths:
                 class_dss.append(rasterio.open(p, 'w', **profile))

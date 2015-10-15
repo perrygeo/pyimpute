@@ -27,9 +27,9 @@ def test_impute():
     impute(target_xs, clf, raster_info, outdir=TMPOUT,
            linechunk=400, class_prob=True, certainty=True)
 
-    assert os.path.exists(os.path.join(TMPOUT, "responses.img"))
-    assert os.path.exists(os.path.join(TMPOUT, "certainty.img"))
-    assert os.path.exists(os.path.join(TMPOUT, "probability_90.img"))
+    assert os.path.exists(os.path.join(TMPOUT, "responses.tif"))
+    assert os.path.exists(os.path.join(TMPOUT, "certainty.tif"))
+    assert os.path.exists(os.path.join(TMPOUT, "probability_90.tif"))
 
 
 def test_load_training_rasters():
