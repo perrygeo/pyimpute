@@ -1,3 +1,4 @@
 scikit-learn
 rasterio
+scipy
 rasterstats>=0.9

@@ -172,7 +172,7 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
         'transform': raster_info['affine'].to_gdal(),
         'width': shape[1]}
 
-    if True:
+    try:
         response_path = os.path.join(outdir, "responses.tif")
         response_ds = rasterio.open(response_path, 'w', **profile)
 
@@ -228,7 +228,7 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
                 classcert2D = proba_class.reshape((linechunk, shape[1])).astype('float32')
                 class_ds.write_band(1, classcert2D, window=window)
 
-    if True:
+    finally:
         response_ds.close()
         if certainty:
             certainty_ds.close()
