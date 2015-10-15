@@ -21,6 +21,7 @@ addons:
     - libmpfr-dev
 python:
   - "2.7"
+  - "3.4"
 before_install:
   - pip install -U pip
   - pip install wheel
