@@ -1,3 +1,5 @@
+![travis](https://travis-ci.org/perrygeo/pyimpute.svg)
+
 ## Python module for geospatial prediction using scikit-learn and GDAL
 
 *Impute*: Estimating missing data by inference.
