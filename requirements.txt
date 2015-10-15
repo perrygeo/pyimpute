@@ -1,3 +1,4 @@
 pandas
 scikit-learn
 gdal
+rasterstats>=0.9

@@ -14,7 +14,7 @@ def load_training_vector(response_shapes, explanatory_rasters, response_field, m
     """
     Parameters
     ----------
-    response_shapes : Source of vector features for raster_stats; 
+    response_shapes : Source of vector features for raster_stats;
                       can be OGR file path or iterable of geojson-like features
     response_field : Field name containing the known response category (must be numeric)
     explanatory_rasters : List of Paths to GDAL rasters containing explanatory variables
@@ -24,33 +24,28 @@ def load_training_vector(response_shapes, explanatory_rasters, response_field, m
     Returns
     -------
     train_xs : Array of explanatory variables
-    train_ys : 1xN array of known responses
+    train_y : 1xN array of known responses
     """
-    from rasterstats import raster_stats
-    explanatory_dfs = []
-    fldnames = []
+    from rasterstats import zonal_stats
+    all_means = []
+    all_zones = None
 
     for i, raster in enumerate(explanatory_rasters):
         logger.debug("Rasters stats on %s" % raster)
-        stats = raster_stats(response_shapes, raster, stats="mean", copy_properties=True)
-        df = pd.DataFrame(stats, columns=["__fid__", response_field, metric])
-        fldname = "%s_%d" % (metric, i)
-        fldnames.append(fldname)
 
-        df.rename(columns={metric: fldname,}, inplace=True)
-        orig_count = df.shape[0]
-        df = df[pd.notnull(df[fldname])]
-        new_count = df.shape[0]
-        if (orig_count - new_count) > 0:
-            logger.warn('Dropping %d rows due to nans' % (orig_count - new_count))
-        explanatory_dfs.append(df)
+        stats = zonal_stats(response_shapes, raster, stats=metric, prefix="pyimpute_", geojson_out=True)
 
-    current = explanatory_dfs[0]
-    for i, frame in enumerate(explanatory_dfs[1:], 2):
-        current = current.merge(frame, on=['__fid__', response_field])
+        zones = [x['properties']['ZONE'] for x in stats]
+        if all_zones:
+            assert zones == all_zones
+        else:
+            all_zones = zones
 
-    train_y = np.array(current[response_field])
-    train_xs = np.array(current[fldnames])
+        means = [x['properties']['pyimpute_' + metric] for x in stats]
+        all_means.append(means)
+
+    train_y = np.array(all_zones)
+    train_xs = np.array(all_means).T
 
     return train_xs, train_y
 
