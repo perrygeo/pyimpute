@@ -1,27 +1,33 @@
 ![travis](https://travis-ci.org/perrygeo/pyimpute.svg)
 
-## Python module for geospatial prediction using scikit-learn and GDAL
+## Python module for geospatial prediction using scikit-learn and rasterio
 
-*Impute*: Estimating missing data by inference.
+`pyimpute` provides high-level python functions for bridging the gap between spatial data formats and machine learning software to facilitate supervised classification and regression on geospatial data. This allows you to create landscape-scale predictions based on sparse observations.
 
-The naming and core concept is based on the [yaImpute](http://cran.r-project.org/web/packages/yaImpute/index.html) R Package.
+The observations, known as the **training data**, consists of:
 
-See my presentation at FOSS4G 2014 for an overview:
+* response variables: what we are trying to predict
+* explanatory variables: variables which explain the spatial patterns of responses
 
-<iframe src="//player.vimeo.com/video/106235287" width="500" height="281" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe> <p><a href="http://vimeo.com/106235287">Spatial-Temporal Prediction of Climate Change Impacts using pyimpute, scikit-learn and GDAL — Matthew Perry</a> from <a href="http://vimeo.com/foss4g">FOSS4G</a> on <a href="https://vimeo.com">Vimeo</a>.</p>
+The **target data** consists of explanatory variables represented by raster datasets. There are no response variables available for the target data; the goal is to *predict* a raster surface of responses. The responses can either be discrete (classification) or continuous (regression).
 
-### Overview
+![example](https://raw.githubusercontent.com/perrygeo/pyimpute/master/example.png)
 
-*Imputation* and *Geospatial prediction* are broad terms for techniques aimed at estimating spatially-explicity characteristics of the landscape based on sparse observations. 
+## Pyimpute Functions
 
-The observations, known as the **training data**, contain:
+* `load_training_vector`: Load training data where responses are vector data (explanatory variables are always raster)
+* `load_training_raster`: Load training data where responses are raster data
+* `stratified_sample_raster`: Random sampling of raster cells based on discrete classes
+* `evaluate_clf`: Performs cross-validation and prints metrics to help tune your scikit-learn classifiers.
+* `load_targets`: Loads target raster data into data structures required by scikit-learn
+* `impute`: takes target data and your scikit-learn classifier and makes predictions, outputing GeoTiffs
+    
+These functions don't really provide any new functionality, it merely saves a lot of tedious data wrangling that would otherwise bog your analysis down in low level details. In other words, pyimpute simply provides a clean python workflow for spatial prediction, allowing us to:
+* frequently update predictions with new information (e.g. new Landsat imagery as it becomes available)
+* explore new variables more easily
+* bring the technique to other disciplines and geographies
 
-* **explanatory** variables: relatively inexpensive to measure or predict; explain the spatial patterns of response variables 
-* **response** variables: relatively expensive or impossible to obtain
-
-The **target data** contains *only* explanatory variables represented by full coverage raster data. There are no response variables available for the target data.
-
-The ultimate goal is to predict spatially-explicit responses based on the target data. It is very similar to the concept of "supervised classification" in remote sensing but can also be used to predict continuious variables (i.e. regression)
+For an overview, watch my presentation at FOSS4G 2014: <a href="http://vimeo.com/106235287">Spatial-Temporal Prediction of Climate Change Impacts using pyimpute, scikit-learn and GDAL — Matthew Perry</a> 
 
 ### Installation
 
@@ -38,21 +44,8 @@ cd pyimpute
 pip install -e .
 ```
 
-Finally, check out the [examples](https://github.com/perrygeo/python-impute/blob/master/examples/).
 
-### The goal of pyimpute
-
-`pyimpute` helps optimize and streamline the process of predicting spatial data through supervised classification and regression. 
-
-`pyimpute` doesn't do much other than provide some powerful, high-level utility functions 
-that leverage the raster data tools of GDAL and the machine learning algorithms of scikit-learn
-
-Having a clean workflow for spatial predictions will allow us to:
-* frequently update predictions with new information (e.g. new Landsat imagery as it becomes available)
-* explore new variables more easily
-* bring the technique to other disciplines and geographies
-
-### The process
+### The general process
 
 1. Loading spatial data
 	* Easiest method: import table containing training observations with both explanatory and response variables.  
@@ -127,8 +120,8 @@ while performance increases *exponentially*.
 ![alt tag](https://raw.github.com/perrygeo/python-impute/master/img/time.png)
 
 
-
 #### Note about geostatistics
 While kriging and other geostatistical techniques are technically "geospatial prediction", they rely on spatial dependence between observations. The problems for which this module was built are landscape scale 
 and rarely suited to such approaches. There is great potential to meld the two approaches (i.e. consider spatial autocorrelation between training data as well as explanatory variables) but this is currently outside the scope of this module.
 
+The naming and core concept is based on the [yaImpute](http://cran.r-project.org/web/packages/yaImpute/index.html) R Package.
