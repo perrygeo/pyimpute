@@ -34,7 +34,7 @@ def load_training_vector(response_shapes, explanatory_rasters, response_field, m
 
         stats = zonal_stats(response_shapes, raster, stats=metric, prefix="pyimpute_", geojson_out=True)
 
-        zones = [x['properties']['ZONE'] for x in stats]
+        zones = [x['properties'][response_field] for x in stats]
         if all_zones:
             assert zones == all_zones
         else:
@@ -293,7 +293,7 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
     return np.array(selected)
 
 
-def evaluate_clf(clf, X, y, k=4, test_size=0.5, scoring="f1", feature_names=None):
+def evaluate_clf(clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", feature_names=None):
     """
     Evalate the classifier on the FULL training dataset
     This takes care of fitting on train/test splits
@@ -328,4 +328,3 @@ def evaluate_clf(clf, X, y, k=4, test_size=0.5, scoring="f1", feature_names=None
         scores = cross_validation.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
         print(scores)
         print("%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (k, scores.mean() * 100, scores.std() * 200))
-
