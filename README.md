@@ -34,7 +34,7 @@ These functions don't really provide any ground-breaking new functionality, they
 Here's what a `pyimpute` workflow might look like. In this example, we have two explanatory variables as rasters (temperature and precipitation) and a geojson with point observations of habitat suitability for a plant species. Our goal is to predict habitat suitability across the entire region based only on the explanatory variables.
 
 ```
-from pyimpute import load_training_rasters, load_targets, impute, evaluate_clf
+from pyimpute import load_training_vector, load_targets, impute, evaluate_clf
 from sklearn.ensemble import RandomForestClassifier
 ```
 
@@ -43,9 +43,9 @@ Load some training data
 explanatory_rasters = ['temperature.tif', 'precipitation.tif']
 response_data = 'point_observations.geojson'
 
-train_xs, train_y = load_training_vectors(response_data,
-                                          explanatory_rasters,
-                                          response_field="suitability")
+train_xs, train_y = load_training_vector(response_data,
+                                         explanatory_rasters,
+                                         response_field="suitability")
 ```
 
 Train a scikit-learn classifier
