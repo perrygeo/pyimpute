@@ -24,19 +24,18 @@ The **target data** consists of explanatory variables represented by raster data
     
 These functions don't really provide any ground-breaking new functionality, they merely saves lots of tedious data wrangling that would otherwise bog your analysis down in low-level details. In other words, `pyimpute` provides a high-level python workflow for spatial prediction, making it easier to:
 
-* frequently update predictions with new information (e.g. new Landsat imagery as it becomes available)
 * explore new variables more easily
+* frequently update predictions with new information (e.g. new Landsat imagery as it becomes available)
 * bring the technique to other disciplines and geographies
 
 
 ### Basic example
 
-Here's what a `pyimpute` workflow might look like:
+Here's what a `pyimpute` workflow might look like. In this example, we have two explanatory variables as rasters (temperature and precipitation) and a geojson with point observations of habitat suitability for a plant species. Our goal is to predict habitat suitability across the entire region based only on the explanatory variables.
 
 ```
 from pyimpute import load_training_rasters, load_targets, impute
 from sklearn.ensemble import RandomForestClassifier
-
 ```
 
 Load some training data
