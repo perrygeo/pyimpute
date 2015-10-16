@@ -1,4 +1,4 @@
 scikit-learn
-rasterio
 scipy
+rasterio
 rasterstats>=0.9
