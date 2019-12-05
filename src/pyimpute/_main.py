@@ -5,7 +5,7 @@ import os
 import math
 import logging
 from sklearn import metrics
-from sklearn import cross_validation
+from sklearn.model_selection import cross_validate, train_test_split, cross_val_score, KFold
 logger = logging.getLogger('pyimpute')
 
 
@@ -25,22 +25,26 @@ def load_training_vector(response_shapes, explanatory_rasters, response_field, m
     train_xs : Array of explanatory variables
     train_y : 1xN array of known responses
     """
-    from rasterstats import zonal_stats
+    from rasterstats import zonal_stats, point_query
     all_means = []
     all_zones = None
 
     for i, raster in enumerate(explanatory_rasters):
         logger.debug("Rasters stats on %s" % raster)
 
-        stats = zonal_stats(response_shapes, raster, stats=metric, prefix="pyimpute_", geojson_out=True)
+        stats = point_query(response_shapes, raster, geojson_out=True)
+        #point_query(response_shapes, raster, stats=metric, prefix="pyimpute_", geojson_out=True)
+
+        #print(stats)
 
         zones = [x['properties'][response_field] for x in stats]
+
         if all_zones:
             assert zones == all_zones
         else:
             all_zones = zones
 
-        means = [x['properties']['pyimpute_' + metric] for x in stats]
+        means = [x['properties']['value'] for x in stats]
         all_means.append(means)
 
     train_y = np.array(all_zones)
@@ -104,13 +108,13 @@ def load_targets(explanatory_rasters):
     for raster in explanatory_rasters:
         logger.debug(raster)
         with rasterio.open(raster) as src:
-            ar = src.read(1)  # TODO band num? 
+            ar = src.read(1)  # TODO band num?
 
             # Save or check the geotransform
             if not aff:
-                aff = src.affine
+                aff = src.transform
             else:
-                assert aff == src.affine
+                assert aff == src.transform
 
             # Save or check the shape
             if not shape:
@@ -159,17 +163,17 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
     shape = raster_info['shape']
 
     profile = {
-        'affine': raster_info['affine'],
+        #'affine': raster_info['affine'],
         'blockxsize': shape[1],
         'height': shape[0],
         'blockysize': 1,
         'count': 1,
         'crs': raster_info['crs'],
         'driver': u'GTiff',
-        'dtype': 'int16',
+        'dtype': 'float32',
         'nodata': -32768,
         'tiled': False,
-        'transform': raster_info['affine'].to_gdal(),
+        'transform': raster_info['affine'],
         'width': shape[1]}
 
     try:
@@ -205,12 +209,14 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
             start = shape[1] * row
             end = start + shape[1] * linechunk
             line = target_xs[start:end, :]
-
+            line = np.float32(line)
+            line[line == -np.inf] = profile['nodata']
+            line[line == np.inf] = profile['nodata']
             window = ((row, row + linechunk), (0, shape[1]))
 
             # Predict
             responses = clf.predict(line)
-            responses2D = responses.reshape((linechunk, shape[1])).astype('int16')
+            responses2D = responses.reshape((linechunk, shape[1])).astype('float32')
             response_ds.write_band(1, responses2D, window=window)
 
             if certainty or class_prob:
@@ -298,7 +304,7 @@ def evaluate_clf(clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", featur
     Evalate the classifier on the FULL training dataset
     This takes care of fitting on train/test splits
     """
-    X_train, X_test, y_train, y_true = cross_validation.train_test_split(
+    X_train, X_test, y_train, y_true = train_test_split(
         X, y, test_size=test_size)
 
     clf.fit(X_train, y_train)
@@ -317,14 +323,14 @@ def evaluate_clf(clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", featur
 
     print("Feature importances")
     if not feature_names:
-        feature_names = ["%d" % i for i in xrange(X.shape[1])]
+        feature_names = ["%d" % i for i in range(X.shape[1])]
     for f, imp in zip(feature_names, clf.feature_importances_):
         print("%20s: %s" % (f, round(imp * 100, 1)))
     print()
 
     if k:
         print("Cross validation")
-        kf = cross_validation.KFold(len(y), n_folds=k)
-        scores = cross_validation.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
+        kf = KFold(len(y), n_folds=k)
+        scores = cross_val_score(clf, X, y, cv=kf, scoring=scoring)
         print(scores)
         print("%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (k, scores.mean() * 100, scores.std() * 200))
