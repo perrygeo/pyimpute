@@ -5,7 +5,7 @@ import os
 import math
 import logging
 from sklearn import metrics
-from sklearn import cross_validation
+from sklearn.model_selection import cross_validate
 logger = logging.getLogger('pyimpute')
 
 
