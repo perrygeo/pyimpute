@@ -5,7 +5,7 @@ import os
 import math
 import logging
 from sklearn import metrics
-from sklearn import cross_validation
+from sklearn import model_selection
 logger = logging.getLogger('pyimpute')
 
 
@@ -97,7 +97,7 @@ def load_targets(explanatory_rasters):
     """
 
     explanatory_raster_arrays = []
-    aff = None
+    transform = None
     shape = None
     crs = None
 
@@ -107,11 +107,11 @@ def load_targets(explanatory_rasters):
             ar = src.read(1)  # TODO band num? 
 
             # Save or check the geotransform
-            if not aff:
-                aff = src.affine
+            if not transform:
+                transform = src.transform
             else:
-                assert aff == src.affine
-
+                assert transform == src.transform
+            
             # Save or check the shape
             if not shape:
                 shape = ar.shape
@@ -131,7 +131,8 @@ def load_targets(explanatory_rasters):
     expl = np.array(explanatory_raster_arrays).T
 
     raster_info = {
-        'affine': aff,
+        #'
+        'transform': transform,
         'shape': shape,
         'crs': crs
     }
@@ -159,7 +160,6 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
     shape = raster_info['shape']
 
     profile = {
-        'affine': raster_info['affine'],
         'blockxsize': shape[1],
         'height': shape[0],
         'blockysize': 1,
@@ -169,7 +169,7 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
         'dtype': 'int16',
         'nodata': -32768,
         'tiled': False,
-        'transform': raster_info['affine'].to_gdal(),
+        'transform': raster_info['transform'],
         'width': shape[1]}
 
     try:
@@ -298,7 +298,7 @@ def evaluate_clf(clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", featur
     Evalate the classifier on the FULL training dataset
     This takes care of fitting on train/test splits
     """
-    X_train, X_test, y_train, y_true = cross_validation.train_test_split(
+    X_train, X_test, y_train, y_true = model_selection.train_test_split(
         X, y, test_size=test_size)
 
     clf.fit(X_train, y_train)
@@ -315,16 +315,17 @@ def evaluate_clf(clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", featur
     print(metrics.confusion_matrix(y_true, y_pred))
     print()
 
-    print("Feature importances")
-    if not feature_names:
-        feature_names = ["%d" % i for i in xrange(X.shape[1])]
-    for f, imp in zip(feature_names, clf.feature_importances_):
-        print("%20s: %s" % (f, round(imp * 100, 1)))
-    print()
+    if hasattr(clf, 'feature_importances_'):
+        print("Feature importances")
+        if not feature_names:
+            feature_names = ["%d" % i for i in range(X.shape[1])]
+            for f, imp in zip(feature_names, clf.feature_importances_):
+                print("%20s: %s" % (f, round(imp * 100, 1)))
+                print()
 
     if k:
         print("Cross validation")
-        kf = cross_validation.KFold(len(y), n_folds=k)
-        scores = cross_validation.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
+        kf = model_selection.KFold(n_splits=k)
+        scores = model_selection.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
         print(scores)
         print("%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (k, scores.mean() * 100, scores.std() * 200))
