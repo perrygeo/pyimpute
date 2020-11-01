@@ -5,11 +5,14 @@ import os
 import math
 import logging
 from sklearn import metrics
-from sklearn import cross_validation
-logger = logging.getLogger('pyimpute')
+from sklearn import model_selection
+
+logger = logging.getLogger("pyimpute")
 
 
-def load_training_vector(response_shapes, explanatory_rasters, response_field, metric='mean'):
+def load_training_vector(
+    response_shapes, explanatory_rasters, response_field, metric="mean"
+):
     """
     Parameters
     ----------
@@ -26,21 +29,24 @@ def load_training_vector(response_shapes, explanatory_rasters, response_field, m
     train_y : 1xN array of known responses
     """
     from rasterstats import zonal_stats
+
     all_means = []
     all_zones = None
 
     for i, raster in enumerate(explanatory_rasters):
         logger.debug("Rasters stats on %s" % raster)
 
-        stats = zonal_stats(response_shapes, raster, stats=metric, prefix="pyimpute_", geojson_out=True)
+        stats = zonal_stats(
+            response_shapes, raster, stats=metric, prefix="pyimpute_", geojson_out=True
+        )
 
-        zones = [x['properties'][response_field] for x in stats]
+        zones = [x["properties"][response_field] for x in stats]
         if all_zones:
             assert zones == all_zones
         else:
             all_zones = zones
 
-        means = [x['properties']['pyimpute_' + metric] for x in stats]
+        means = [x["properties"]["pyimpute_" + metric] for x in stats]
         all_means.append(means)
 
     train_y = np.array(all_zones)
@@ -97,20 +103,20 @@ def load_targets(explanatory_rasters):
     """
 
     explanatory_raster_arrays = []
-    aff = None
+    transform = None
     shape = None
     crs = None
 
     for raster in explanatory_rasters:
         logger.debug(raster)
         with rasterio.open(raster) as src:
-            ar = src.read(1)  # TODO band num? 
+            ar = src.read(1)  # TODO band num?
 
             # Save or check the geotransform
-            if not aff:
-                aff = src.affine
+            if not transform:
+                transform = src.transform
             else:
-                assert aff == src.affine
+                assert transform == src.transform
 
             # Save or check the shape
             if not shape:
@@ -131,14 +137,22 @@ def load_targets(explanatory_rasters):
     expl = np.array(explanatory_raster_arrays).T
 
     raster_info = {
-        'affine': aff,
-        'shape': shape,
-        'crs': crs
+        "transform": transform,
+        "shape": shape,
+        "crs": crs,
     }
     return expl, raster_info
 
 
-def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_prob=True, certainty=True):
+def impute(
+    target_xs,
+    clf,
+    raster_info,
+    outdir="output",
+    linechunk=1000,
+    class_prob=True,
+    certainty=True,
+):
     """
     Parameters
     ----------
@@ -156,30 +170,30 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    shape = raster_info['shape']
+    shape = raster_info["shape"]
 
     profile = {
-        'affine': raster_info['affine'],
-        'blockxsize': shape[1],
-        'height': shape[0],
-        'blockysize': 1,
-        'count': 1,
-        'crs': raster_info['crs'],
-        'driver': u'GTiff',
-        'dtype': 'int16',
-        'nodata': -32768,
-        'tiled': False,
-        'transform': raster_info['affine'].to_gdal(),
-        'width': shape[1]}
+        "blockxsize": shape[1],
+        "height": shape[0],
+        "blockysize": 1,
+        "count": 1,
+        "crs": raster_info["crs"],
+        "driver": u"GTiff",
+        "dtype": "int16",
+        "nodata": -32768,
+        "tiled": False,
+        "transform": raster_info["transform"],
+        "width": shape[1],
+    }
 
     try:
         response_path = os.path.join(outdir, "responses.tif")
-        response_ds = rasterio.open(response_path, 'w', **profile)
+        response_ds = rasterio.open(response_path, "w", **profile)
 
-        profile['dtype'] = 'float32'
+        profile["dtype"] = "float32"
         if certainty:
             certainty_path = os.path.join(outdir, "certainty.tif")
-            certainty_ds = rasterio.open(certainty_path, 'w', **profile)
+            certainty_ds = rasterio.open(certainty_path, "w", **profile)
 
         class_dss = []
         if class_prob:
@@ -189,7 +203,7 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
                 ods = os.path.join(outdir, "probability_%s.tif" % c)
                 class_paths.append(ods)
             for p in class_paths:
-                class_dss.append(rasterio.open(p, 'w', **profile))
+                class_dss.append(rasterio.open(p, "w", **profile))
 
         # Chunky logic
         if not linechunk:
@@ -197,7 +211,7 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
         chunks = int(math.ceil(shape[0] / float(linechunk)))
 
         for chunk in range(chunks):
-            logger.debug("Writing chunk %d of %d" % (chunk+1, chunks))
+            logger.debug("Writing chunk %d of %d" % (chunk + 1, chunks))
             row = chunk * linechunk
             if row + linechunk > shape[0]:
                 linechunk = shape[0] - row
@@ -210,7 +224,7 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
 
             # Predict
             responses = clf.predict(line)
-            responses2D = responses.reshape((linechunk, shape[1])).astype('int16')
+            responses2D = responses.reshape((linechunk, shape[1])).astype("int16")
             response_ds.write_band(1, responses2D, window=window)
 
             if certainty or class_prob:
@@ -219,13 +233,17 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
             # Certainty
             if certainty:
                 certaintymax = proba.max(axis=1)
-                certainty2D = certaintymax.reshape((linechunk, shape[1])).astype('float32')
+                certainty2D = certaintymax.reshape((linechunk, shape[1])).astype(
+                    "float32"
+                )
                 certainty_ds.write_band(1, certainty2D, window=window)
 
             # write out probabilities for each class as a separate raster
             for i, class_ds in enumerate(class_dss):
                 proba_class = proba[:, i]
-                classcert2D = proba_class.reshape((linechunk, shape[1])).astype('float32')
+                classcert2D = proba_class.reshape((linechunk, shape[1])).astype(
+                    "float32"
+                )
                 class_ds.write_band(1, classcert2D, window=window)
 
     finally:
@@ -236,7 +254,9 @@ def impute(target_xs, clf, raster_info, outdir="output", linechunk=1000, class_p
             class_ds.close()
 
 
-def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_proportion=0.1):
+def stratified_sample_raster(
+    strata_data, target_sample_size=30, min_sample_proportion=0.1
+):
     """
     Parameters
     ----------
@@ -253,13 +273,13 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
     # construct a dictionary of lists,
     # keys are stratum ids
     # values are list of indices
-    sample = dict([(int(s),[]) for s in np.unique(strata)])
+    sample = dict([(int(s), []) for s in np.unique(strata)])
     satisfied = []
 
     # counts for proportion-based constraints
     bins = np.bincount(strata)
     ii = np.nonzero(bins)[0]
-    stratum_count = dict(zip(ii,bins[ii]))
+    stratum_count = dict(zip(ii, bins[ii]))
 
     # shuffle the indices and loop until the sample satisfied our constraints
     np.random.shuffle(index_array)
@@ -285,7 +305,7 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
         # check for stratum with < target sample size
         if len(v) < target_sample_size:
             # if we have too few samples, drop them
-            #warnings.warn("Stratum %s has only %d samples, dropped" % (k, len(v)))
+            # warnings.warn("Stratum %s has only %d samples, dropped" % (k, len(v)))
             pass
         else:
             selected.extend(v)
@@ -293,13 +313,16 @@ def stratified_sample_raster(strata_data, target_sample_size=30, min_sample_prop
     return np.array(selected)
 
 
-def evaluate_clf(clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", feature_names=None):
+def evaluate_clf(
+    clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", feature_names=None
+):
     """
     Evalate the classifier on the FULL training dataset
     This takes care of fitting on train/test splits
     """
-    X_train, X_test, y_train, y_true = cross_validation.train_test_split(
-        X, y, test_size=test_size)
+    X_train, X_test, y_train, y_true = model_selection.train_test_split(
+        X, y, test_size=test_size
+    )
 
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
@@ -315,16 +338,20 @@ def evaluate_clf(clf, X, y, k=None, test_size=0.5, scoring="f1_weighted", featur
     print(metrics.confusion_matrix(y_true, y_pred))
     print()
 
-    print("Feature importances")
-    if not feature_names:
-        feature_names = ["%d" % i for i in xrange(X.shape[1])]
-    for f, imp in zip(feature_names, clf.feature_importances_):
-        print("%20s: %s" % (f, round(imp * 100, 1)))
-    print()
+    if hasattr(clf, "feature_importances_"):
+        print("Feature importances")
+        if not feature_names:
+            feature_names = ["%d" % i for i in range(X.shape[1])]
+            for f, imp in zip(feature_names, clf.feature_importances_):
+                print("%20s: %s" % (f, round(imp * 100, 1)))
+                print()
 
     if k:
         print("Cross validation")
-        kf = cross_validation.KFold(len(y), n_folds=k)
-        scores = cross_validation.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
+        kf = model_selection.KFold(n_splits=k)
+        scores = model_selection.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
         print(scores)
-        print("%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (k, scores.mean() * 100, scores.std() * 200))
+        print(
+            "%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)"
+            % (k, scores.mean() * 100, scores.std() * 200)
+        )
