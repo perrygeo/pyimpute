@@ -32,7 +32,7 @@ setup(
     url="https://github.com/perrygeo/pyimpute",
     package_dir={"": "src"},
     packages=["pyimpute"],
-    long_description=read("README.md"),
+    long_description="See documentation at https://github.com/perrygeo/pyimpute",
     install_requires=["scikit-learn", "scipy", "numpy", "rasterstats", "rasterio"],
     tests_require=["pytest", "pyshp>=1.1.4", "coverage"],
     cmdclass={"test": PyTest},
