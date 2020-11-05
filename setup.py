@@ -5,16 +5,34 @@ from setuptools.command.test import test as TestCommand
 
 
 def read(fname):
+    """
+    Read file
+
+    Args:
+        fname: (str): write your description
+    """
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
 class PyTest(TestCommand):
     def finalize_options(self):
+        """
+        Finalize options.
+
+        Args:
+            self: (todo): write your description
+        """
         TestCommand.finalize_options(self)
         self.test_args = []
         self.test_suite = True
 
     def run_tests(self):
+        """
+        Run the test.
+
+        Args:
+            self: (todo): write your description
+        """
         import pytest
 
         errno = pytest.main(self.test_args)

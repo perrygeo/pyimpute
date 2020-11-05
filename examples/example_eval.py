@@ -17,6 +17,11 @@ TRAINING_DIR = "./_usfs_data"
 
 
 def main():
+    """
+    Main function.
+
+    Args:
+    """
 
     # Define the known data points or "training" data
     explanatory_fields = "d100 dd0 dd5 fday ffp gsdd5 gsp map mat_tenths mmax_tenths mmindd0 mmin_tenths mtcm_tenths mtwm_tenths sday".split()

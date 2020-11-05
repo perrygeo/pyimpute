@@ -13,6 +13,11 @@ TMPOUT = "/tmp/pyimpute_test"
 
 
 def test_impute():
+    """
+    Test if train_imp classifier
+
+    Args:
+    """
     from pyimpute import load_training_rasters, load_targets, impute
 
     # Load training data
@@ -44,6 +49,11 @@ def test_impute():
 
 
 def test_load_training_rasters():
+    """
+    Load train train - train train.
+
+    Args:
+    """
     from pyimpute import load_training_rasters
 
     train_xs, train_y = load_training_rasters(response_raster, explanatory_rasters)
@@ -53,6 +63,11 @@ def test_load_training_rasters():
 
 
 def test_load_training_vector():
+    """
+    Test for training and test sets.
+
+    Args:
+    """
     from pyimpute import load_training_vector
 
     response_shapes = os.path.join(DATA, "points.geojson")
@@ -66,6 +81,11 @@ def test_load_training_vector():
 
 
 def test_load_targets():
+    """
+    Raster targets.
+
+    Args:
+    """
     from pyimpute import load_targets
 
     target_xs, raster_info = load_targets(explanatory_rasters)
@@ -74,6 +94,11 @@ def test_load_targets():
 
 
 def test_stratified_sample_raster():
+    """
+    Sample the raster.
+
+    Args:
+    """
     from pyimpute import load_training_rasters, stratified_sample_raster
 
     # Take a random stratified sample
