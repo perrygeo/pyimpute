@@ -18,6 +18,11 @@ TRAINING_DIR = "./_aez_data/training"
 
 
 def main():
+    """
+    Main function.
+
+    Args:
+    """
     # Define the known data points or "training" data
     explanatory_fields = "tmin12c tmax8c p_ph_c pmean_wntrc pmean_sumrc irr_lands gt_demc grwsnc d2u2c".split()
     explanatory_rasters = [os.path.join(TRAINING_DIR, r, "hdr.adf") for r in explanatory_fields]
