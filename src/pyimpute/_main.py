@@ -116,7 +116,7 @@ def load_targets(explanatory_rasters):
             if not transform:
                 transform = src.transform
             else:
-                assert transform == src.transform
+                assert transform.almost_equals(src.transform)
 
             # Save or check the shape
             if not shape:
