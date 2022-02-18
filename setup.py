@@ -23,7 +23,7 @@ class PyTest(TestCommand):
 
 setup(
     name="pyimpute",
-    version="0.2",
+    version="0.3",
     author="Matthew Perry",
     author_email="perrygeo@gmail.com",
     description=("Utilities for applying scikit-learn to spatial datasets"),
