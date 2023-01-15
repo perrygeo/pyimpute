@@ -349,7 +349,7 @@ def evaluate_clf(
     if k:
         print("Cross validation")
         kf = model_selection.KFold(n_splits=k)
-        scores = model_selection.cross_val_score(clf, X, y, cv=kf, scoring=scoring)
+        scores = model_selection.cross_val_score(clf, X_train, y_train, cv=kf, scoring=scoring)
         print(scores)
         print(
             "%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)"
